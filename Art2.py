@@ -537,9 +537,16 @@ def get_observation_table_html(data, download_pdf=None) -> str:
                                 height:16.05pt;
                             "
                         >
+                            <!--
+                                border="1" is intentional: mPDF keeps a single global
+                                "table border attribute" flag, and a nested table with
+                                border="0" resets it, which strips the internal borders
+                                from every outer-table cell rendered after this one.
+                                The visible border is still removed via style="border:none".
+                            -->
                             <table
                                 width="100%"
-                                border="0"
+                                border="1"
                                 cellspacing="0"
                                 cellpadding="0"
                                 style="

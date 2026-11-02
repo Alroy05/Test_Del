@@ -28,39 +28,6 @@ from app.models import SarTemplateJsonData
 from app.models.role import Role
 from app.models.sar_json_history_data import SarJsonHistoryData
 
-REVIEWER_HEADER_NAME = "header_reviewer_second_page"
-
-
-def _normalize_name(name) -> str:
-    return " ".join(str(name or "").split()).casefold()
-
-
-def _is_gisg_leadership(user, user_type=None) -> bool:
-    effective_type = user_type if user_type is not None else user.user_type
-    return effective_type == Role.ROLE_TYPE_SECURITY_OFFICER
-
-
-def _is_user_already_reviewer(reviewers, user, user_name) -> bool:
-    """
-    A user counts as already listed if an entry carries their id, or (for
-    entries typed/edited manually in the SAR editor, which may have no id)
-    the same full name, ignoring case and extra whitespace.
-    """
-    normalized_user_name = _normalize_name(user_name)
-
-    for entry in reviewers:
-        if not isinstance(entry, dict):
-            continue
-
-        entry_id = entry.get("id")
-        if entry_id not in (None, "") and str(entry_id) == str(user.id):
-            return True
-
-        if normalized_user_name and _normalize_name(entry.get("reviewer")) == normalized_user_name:
-            return True
-
-    return False
-
 
 @transaction.atomic
 def add_leadership_reviewer_on_approval(request_details, user, user_type=None) -> bool:
@@ -70,18 +37,23 @@ def add_leadership_reviewer_on_approval(request_details, user, user_type=None) -
     Returns True when a reviewer was added (and the section re-rendered),
     False when nothing had to change.
     """
-    if not _is_gisg_leadership(user, user_type):
+    header_name = "header_reviewer_second_page"
+
+    # 1) Only GISG Leadership approvals add a reviewer.
+    effective_user_type = user_type if user_type is not None else user.user_type
+    if effective_user_type != Role.ROLE_TYPE_SECURITY_OFFICER:
         return False
 
     user_name = user.get_full_name()
     if not user_name:
         return False
 
+    # 2) Load the current reviewer list.
     reviewer_row = (
         SarTemplateJsonData.objects.select_for_update()
         .filter(
             request=request_details,
-            header_name=REVIEWER_HEADER_NAME,
+            header_name=header_name,
             is_active=1,
         )
         .order_by("-created_date")
@@ -92,9 +64,23 @@ def add_leadership_reviewer_on_approval(request_details, user, user_type=None) -
     reviewers = json_data.get("reviewers")
     reviewers = list(reviewers) if isinstance(reviewers, list) else []
 
-    if _is_user_already_reviewer(reviewers, user, user_name):
-        return False
+    # 3) Skip if the user is already listed: same id, or (for entries typed
+    #    manually in the SAR editor, which may have no id) the same full name,
+    #    ignoring case and extra whitespace.
+    normalized_user_name = " ".join(user_name.split()).casefold()
+    for entry in reviewers:
+        if not isinstance(entry, dict):
+            continue
 
+        entry_id = entry.get("id")
+        if entry_id not in (None, "") and str(entry_id) == str(user.id):
+            return False
+
+        entry_name = " ".join(str(entry.get("reviewer") or "").split()).casefold()
+        if entry_name == normalized_user_name:
+            return False
+
+    # 4) Append the user's name and the approval date.
     reviewers.append(
         {
             "id": user.id,
@@ -104,8 +90,8 @@ def add_leadership_reviewer_on_approval(request_details, user, user_type=None) -
     )
     json_data["reviewers"] = reviewers
 
-    # Same archive-then-recreate pattern as _upsert_json_section /
-    # save_sar_form_data, so the reviewer change is kept in the JSON history.
+    # 5) Archive the previous JSON and save the new one (same pattern as
+    #    _upsert_json_section / save_sar_form_data).
     section_status = SarTemplateJsonData.STATUS_VALUES.get("DRAFT", 1)
     if reviewer_row:
         section_status = reviewer_row.section_status
@@ -121,7 +107,7 @@ def add_leadership_reviewer_on_approval(request_details, user, user_type=None) -
         reviewer_row.delete()
 
     SarTemplateJsonData.objects.create(
-        header_name=REVIEWER_HEADER_NAME,
+        header_name=header_name,
         json_data=json_data,
         request=request_details,
         section_status=section_status,
@@ -130,25 +116,25 @@ def add_leadership_reviewer_on_approval(request_details, user, user_type=None) -
         is_active=1,
     )
 
-    # Re-render only the reviewer section into SarTemplateData so that
-    # publish_sar_on_leadership_approval() copies the updated HTML.
-    # NOTE: adjust this import to the module where refresh_sar_html lives
-    # (the SAR service shown in Art5.py). Imported lazily, like Art4.py does,
-    # to avoid circular imports.
+    # 6) Re-render only the reviewer section into SarTemplateData so that
+    #    publish_sar_on_leadership_approval() copies the updated HTML.
+    #    NOTE: adjust this import to the module where refresh_sar_html lives
+    #    (the SAR service shown in Art5.py). Imported lazily, like Art4.py
+    #    does, to avoid circular imports.
     from app.services.sar_service import refresh_sar_html
 
     result = refresh_sar_html(
         request_details,
         user,
-        header_names=[REVIEWER_HEADER_NAME],
+        header_names=[header_name],
     )
 
     failed = (result or {}).get("failed_headers") or {}
-    if REVIEWER_HEADER_NAME in failed:
+    if header_name in failed:
         # Abort the surrounding transaction: approving without the reviewer
         # would publish a SAR that silently misses the approver.
         raise RuntimeError(
-            f"Failed to render SAR reviewer section: {failed[REVIEWER_HEADER_NAME]}"
+            f"Failed to render SAR reviewer section: {failed[header_name]}"
         )
 
     return True

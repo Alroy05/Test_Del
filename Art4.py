@@ -1,119 +1,613 @@
-@transaction.atomic
-def publish_sar_on_leadership_approval(request_details, user) -> int:
+CONTROLS_DICT = {
+    "is_new": True,
+    "controls": [
+        {
+            "key": "third_party_attestations_certifications",
+            "category": "governance_and_independent_assurance",
+            "status": "",
+            "comment": "",
+            "control": "Third-Party Attestations / Certifications",
+            "implementation_details": "",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+        },
+        {
+            "key": "vendor_assessments",
+            "category": "governance_and_independent_assurance",
+            "status": "",
+            "comment": "",
+            "control": "Vendor Assessments",
+            "implementation_details": "",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+        },
+        {
+            "key": "exceptions_kpmg_or_third_party",
+            "category": "governance_and_independent_assurance",
+            "status": "",
+            "comment": "",
+            "control": "Exceptions (KPMG or Third Party)",
+            "implementation_details": "",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+        },
+        {
+            "key": "risk_acceptances_kpmg_or_third_party",
+            "category": "governance_and_independent_assurance",
+            "status": "",
+            "comment": "",
+            "control": "Risk Acceptances (KPMG or Third Party)",
+            "implementation_details": "",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+        },
+        {
+            "key": "scanning_and_vulnerability_management",
+            "category": "posture_and_vulnerability_management",
+            "status": "",
+            "comment": "",
+            "control": "Scanning & Vulnerability Management (Runtime, Dependency, Infrastructure, etc.)",
+            "implementation_details": "",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+        },
+        {
+            "key": "security_posture_management",
+            "category": "posture_and_vulnerability_management",
+            "status": "",
+            "comment": "",
+            "control": "Security Posture Management",
+            "implementation_details": "",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+        },
+        {
+            "key": "patch_and_remediation_management",
+            "category": "posture_and_vulnerability_management",
+            "status": "",
+            "comment": "",
+            "control": "Patch & Remediation Management",
+            "implementation_details": "",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+        },
+        {
+            "key": "authentication",
+            "category": "identity_and_access_management",
+            "status": "",
+            "comment": "",
+            "control": "Authentication",
+            "implementation_details": "",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+        },
+        {
+            "key": "secrets_and_credential_management",
+            "category": "identity_and_access_management",
+            "status": "",
+            "comment": "",
+            "control": "Secrets & Credential Management",
+            "implementation_details": "",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+        },
+        {
+            "key": "authorization",
+            "category": "identity_and_access_management",
+            "status": "",
+            "comment": "",
+            "control": "Authorization",
+            "implementation_details": "",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+        },
+        {
+            "key": "role_based_access",
+            "category": "identity_and_access_management",
+            "status": "",
+            "comment": "",
+            "control": "Role Based Access",
+            "implementation_details": "",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+        },
+        {
+            "key": "segregation_of_duties",
+            "category": "identity_and_access_management",
+            "status": "",
+            "comment": "",
+            "control": "Segregation of Duties",
+            "implementation_details": "",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+        },
+        {
+            "key": "privileged_access_management",
+            "category": "identity_and_access_management",
+            "status": "",
+            "comment": "",
+            "control": "Privileged Access Management",
+            "implementation_details": "",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+        },
+        {
+            "key": "session_management",
+            "category": "identity_and_access_management",
+            "status": "",
+            "comment": "",
+            "control": "Session Management",
+            "implementation_details": "",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+        },
+        {
+            "key": "system_hardening",
+            "category": "endpoint_and_workload_security",
+            "status": "",
+            "comment": "",
+            "control": "System Hardening",
+            "implementation_details": "",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+        },
+        {
+            "key": "endpoint_protection",
+            "category": "endpoint_and_workload_security",
+            "status": "",
+            "comment": "",
+            "control": "Endpoint Protection",
+            "implementation_details": "",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+        },
+        {
+            "key": "runtime_security",
+            "category": "endpoint_and_workload_security",
+            "status": "",
+            "comment": "",
+            "control": "Runtime Security",
+            "implementation_details": "",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+        },
+        {
+            "key": "network_segmentation",
+            "category": "network_security",
+            "status": "",
+            "comment": "",
+            "control": "Network Segmentation",
+            "implementation_details": "",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+        },
+        {
+            "key": "network_access_control",
+            "category": "network_security",
+            "status": "",
+            "comment": "",
+            "control": "Network Access Control",
+            "implementation_details": "",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+        },
+        {
+            "key": "traffic_inspection_and_filtering",
+            "category": "network_security",
+            "status": "",
+            "comment": "",
+            "control": "Traffic Inspection & Filtering",
+            "implementation_details": "",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+        },
+        {
+            "key": "data_in_transit",
+            "category": "data_protection",
+            "status": "",
+            "comment": "",
+            "control": "Data in Transit",
+            "implementation_details": "",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+        },
+        {
+            "key": "data_at_rest",
+            "category": "data_protection",
+            "status": "",
+            "comment": "",
+            "control": "Data at Rest",
+            "implementation_details": "",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+        },
+        {
+            "key": "cryptographic_key_management",
+            "category": "data_protection",
+            "status": "",
+            "comment": "",
+            "control": "Cryptographic Key Management",
+            "implementation_details": "",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+        },
+        {
+            "key": "reporting_and_data_export",
+            "category": "data_protection",
+            "status": "",
+            "comment": "",
+            "control": "Reporting and Data Export",
+            "implementation_details": "",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+        },
+        {
+            "key": "backup_and_recovery",
+            "category": "operations_and_resilience",
+            "status": "",
+            "comment": "",
+            "control": "Backup & Recovery",
+            "implementation_details": "",
+            "placeholder_text": "Statement on how the solution implements the requirement with alignment to the BC level",
+        },
+        {
+            "key": "fault_tolerance",
+            "category": "operations_and_resilience",
+            "status": "",
+            "comment": "",
+            "control": "Fault Tolerance",
+            "implementation_details": "",
+            "placeholder_text": "Statement on how the solution implements the requirement with alignment to the BC level",
+        },
+        {
+            "key": "redundancy",
+            "category": "operations_and_resilience",
+            "status": "",
+            "comment": "",
+            "control": "Redundancy",
+            "implementation_details": "",
+            "placeholder_text": "Statement on how the solution implements the requirement with alignment to the BC level",
+        },
+        {
+            "key": "incident_management",
+            "category": "operations_and_resilience",
+            "status": "",
+            "comment": "",
+            "control": "Incident Management",
+            "implementation_details": "",
+            "placeholder_text": "Statement on how the solution implements the requirement with alignment to the BC level",
+        },
+        {
+            "key": "application_monitoring",
+            "category": "logging_and_monitoring",
+            "status": "",
+            "comment": "",
+            "control": "Application Monitoring",
+            "implementation_details": "",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+        },
+        {
+            "key": "system_infrastructure_monitoring",
+            "category": "logging_and_monitoring",
+            "status": "",
+            "comment": "",
+            "control": "System / Infrastructure Monitoring",
+            "implementation_details": "",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+        },
+        {
+            "key": "logging_destination",
+            "category": "logging_and_monitoring",
+            "status": "",
+            "comment": "",
+            "control": "Logging Destination",
+            "implementation_details": "",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+        },
+        {
+            "key": "log_retention",
+            "category": "logging_and_monitoring",
+            "status": "",
+            "comment": "",
+            "control": "Log Retention",
+            "implementation_details": "",
+            "placeholder_text": "Statement of time for each log type, if different. If retention time is less than 180 days note as a Gap",
+        },
+        {
+            "key": "security_monitoring",
+            "category": "logging_and_monitoring",
+            "status": "",
+            "comment": "",
+            "control": "Security Monitoring",
+            "implementation_details": "",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+        },
+        {
+            "key": "ai_inventory_and_model_management",
+            "category": "ai_security",
+            "status": "",
+            "comment": "",
+            "control": "AI Inventory & Model Management",
+            "implementation_details": "",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+        },
+        {
+            "key": "ai_identity_and_agent_security",
+            "category": "ai_security",
+            "status": "",
+            "comment": "",
+            "control": "AI Identity & Agent Security",
+            "implementation_details": "",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+        },
+        {
+            "key": "ai_guardrails_and_boundary_controls",
+            "category": "ai_security",
+            "status": "",
+            "comment": "",
+            "control": "AI Guardrails & Boundary Controls",
+            "implementation_details": "",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+        },
+        {
+            "key": "ai_security_monitoring",
+            "category": "ai_security",
+            "status": "",
+            "comment": "",
+            "control": "AI Security Monitoring",
+            "implementation_details": "",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+        },
+    ],
+}
 
-    old_prod_onboarding = request_details.prod_onboarding_done
-
-    request_details.prod_onboarding_done = not request_details.prod_onboarding_done
-    request_details.save(
-        update_fields=[
-            "prod_onboarding_done",
-        ]
-    )
-
-    if (
-        request_details.solution_type != RequestorTeam.SOLUTION_TYPE_SAAS
-        and old_prod_onboarding
-    ):
-        from app.services.findings_service import mark_findings_readonly
-        mark_findings_readonly(request_details.sgp_id)
-
-    latest_version = SarTemplateDataLog.objects.filter(
-        request=request_details
-    ).aggregate(Max("version_id"))["version_id__max"]
-
-    next_version = (latest_version or 0) + 1
-
-    existing_pdf_rows = list(SarTemplateDataPdf.objects.filter(request=request_details))
-    archived_version = 0
-
-    if existing_pdf_rows:
-        log_rows = [
-            SarTemplateDataLog(
-                header_name=row.header_name,
-                header_data=row.header_data,
-                request=request_details,
-                comment=row.comment,
-                created_by=user,
-                role=user.user_type,
-                version_id=next_version,
-            )
-            for row in existing_pdf_rows
-        ]
-        SarTemplateDataLog.objects.bulk_create(log_rows)
-
-        SarTemplateDataPdf.objects.filter(request=request_details).delete()
-        archived_version = next_version
-
-    active_data_rows = SarTemplateData.objects.filter(
-        request=request_details,
-        is_active=1,
-    )
-
-    pdf_rows = [
-        SarTemplateDataPdf(
-            header_name=row.header_name,
-            header_data=row.header_data,
-            request=request_details,
-            comment=row.comment,
-            created_by=user,
-        )
-        for row in active_data_rows
+CONTROLS_DICT_OLD = {
+    "controls": [
+        {
+            "key": "certification",
+            "category": "governance_and_strategy",
+            "status": "",
+            "comment": "",
+            "control": "Certification (ISO, SOC2, etc.)",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+            "implementation_details": "",
+        },
+        {
+            "key": "system_hardening",
+            "category": "vul_management",
+            "status": "",
+            "comment": "",
+            "control": "System Hardening",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+            "implementation_details": "",
+        },
+        {
+            "key": "application_patching",
+            "category": "vul_management",
+            "status": "",
+            "comment": "",
+            "control": "Application Patching Explain the responsible party (individual, a distribution list, organization, etc.) and how they will maintain application patching on an on-going basis",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+            "implementation_details": "",
+        },
+        {
+            "key": "authentication",
+            "category": "identity_management",
+            "status": "",
+            "comment": "",
+            "control": "Authentication",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+            "implementation_details": "",
+        },
+        {
+            "key": "authorization",
+            "category": "identity_management",
+            "status": "",
+            "comment": "",
+            "control": "Authorization",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+            "implementation_details": "",
+        },
+        {
+            "key": "information_data_workflow",
+            "category": "identity_management",
+            "status": "",
+            "comment": "",
+            "control": "Information (Data) Workflow",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+            "implementation_details": "",
+        },
+        {
+            "key": "session_management",
+            "category": "identity_management",
+            "status": "",
+            "comment": "",
+            "control": "Session Management",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+            "implementation_details": "",
+        },
+        {
+            "key": "segregation_of_duties",
+            "category": "identity_management",
+            "status": "",
+            "comment": "",
+            "control": "Segregation of Duties",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+            "implementation_details": "",
+        },
+        {
+            "key": "role_based_access_control",
+            "category": "identity_management",
+            "status": "",
+            "comment": "",
+            "control": "Role Based Access Control (RBAC)",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+            "implementation_details": "",
+        },
+        {
+            "key": "privileged_access_management",
+            "category": "privilege_access",
+            "status": "",
+            "comment": "",
+            "control": "Privileged Access Management",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+            "implementation_details": "",
+        },
+        {
+            "key": "antivirus_and_host_security",
+            "category": "endpoint_security",
+            "status": "",
+            "comment": "",
+            "control": "Antivirus & Host-based Security",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+            "implementation_details": "",
+        },
+        {
+            "key": "logical_and_physical_segmentation",
+            "category": "network_security",
+            "status": "",
+            "comment": "",
+            "control": "Logical & Physical Segmentation",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+            "implementation_details": "",
+        },
+        {
+            "key": "network_security_controls",
+            "category": "network_security",
+            "status": "",
+            "comment": "",
+            "control": "Network-based Security Intrusion Detection / Prevention Systems, Proxy, Web Application Firewall, Azure Network Security Group (NSG), including NSG rules",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+            "implementation_details": "",
+        },
+        {
+            "key": "static_code_analysis",
+            "category": "devops_security",
+            "status": "",
+            "comment": "",
+            "control": "Static Code Analysis",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+            "implementation_details": "",
+        },
+        {
+            "key": "dynamic_code_analysis",
+            "category": "devops_security",
+            "status": "",
+            "comment": "",
+            "control": "Dynamic Code Analysis",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+            "implementation_details": "",
+        },
+        {
+            "key": "penetration_testing",
+            "category": "devops_security",
+            "status": "",
+            "comment": "",
+            "control": "Penetration Testing",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+            "implementation_details": "",
+        },
+        {
+            "key": "data_in_transit",
+            "category": "data_protection",
+            "status": "",
+            "comment": "",
+            "control": "Data-in-Transit",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+            "implementation_details": "",
+        },
+        {
+            "key": "data_at_rest",
+            "category": "data_protection",
+            "status": "",
+            "comment": "",
+            "control": "Data-at-Rest",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+            "implementation_details": "",
+        },
+        {
+            "key": "database_encryption",
+            "category": "data_protection",
+            "status": "",
+            "comment": "",
+            "control": "Database Encryption",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+            "implementation_details": "",
+        },
+        {
+            "key": "key_management",
+            "category": "data_protection",
+            "status": "",
+            "comment": "",
+            "control": "Key Management",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+            "implementation_details": "",
+        },
+        {
+            "key": "reporting_data_exporting",
+            "category": "data_protection",
+            "status": "",
+            "comment": "",
+            "control": "Reporting / Data Exporting",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+            "implementation_details": "",
+        },
+        {
+            "key": "external_content",
+            "category": "data_protection",
+            "status": "",
+            "comment": "",
+            "control": "External Content Provide summary details of any external data providers transferring content to the system and the provider's location and communications method(s).",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+            "implementation_details": "",
+        },
+        {
+            "key": "backup_disaster_recovery",
+            "category": "backup_recovery",
+            "status": "",
+            "comment": "",
+            "control": "Backup / Disaster RecoveryVM Snapshot, Microsoft Azure Recovery Service (MAR) agent, Azure Backup Server, etc.",
+            "placeholder_text": "Statement on how the solution implements the requirement with alignment to the BC level",
+            "implementation_details": "",
+        },
+        {
+            "key": "fault_tolerance",
+            "category": "backup_recovery",
+            "status": "",
+            "comment": "",
+            "control": "Fault Tolerance(Sustain availability, DDoS mitigation, etc.)",
+            "placeholder_text": "Statement on how the solution implements the requirement with alignment to the BC level",
+            "implementation_details": "",
+        },
+        {
+            "key": "redundancy",
+            "category": "backup_recovery",
+            "status": "",
+            "comment": "",
+            "control": "Redundancy Specify if geo-redundancy has been requested and describe its implementation.",
+            "placeholder_text": "Statement on how the solution implements the requirement with alignment to the BC level",
+            "implementation_details": "",
+        },
+        {
+            "key": "incident_management",
+            "category": "backup_recovery",
+            "status": "",
+            "comment": "",
+            "control": "Incident Management (Application)",
+            "placeholder_text": "Statement on how the solution implements the requirement with alignment to the BC level",
+            "implementation_details": "",
+        },
+        {
+            "key": "application_monitoring",
+            "category": "logging_threat_detection",
+            "status": "",
+            "comment": "",
+            "control": "Application Monitoring Database, Frontend (IIS), Transactions (accesses, changes, etc.), Performance, etc.",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+            "implementation_details": "",
+        },
+        {
+            "key": "system_monitoring",
+            "category": "logging_threat_detection",
+            "status": "",
+            "comment": "",
+            "control": "System Monitoring Operating System, Host-based Protections, Host Performance, etc.",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+            "implementation_details": "",
+        },
+        {
+            "key": "infrastructure_monitoring",
+            "category": "logging_threat_detection",
+            "status": "",
+            "comment": "",
+            "control": "Infrastructure Monitoring, Intrusion Detection / Prevention Systems, Proxy, Web Application Firewall, Azure Network Security Group (NSG), NSG policy, etc.",
+            "placeholder_text": "Statement on how the solution implements the requirement",
+            "implementation_details": "",
+        },
+        {
+            "key": "log_retention_time",
+            "category": "logging_threat_detection",
+            "status": "",
+            "comment": "",
+            "control": "Log Retention Time",
+            "placeholder_text": "Statement of time for each log type, if different. If retention time is less than 180 days note as a Gap",
+            "implementation_details": "",
+        },
     ]
-    SarTemplateDataPdf.objects.bulk_create(pdf_rows)
-
-    SecurityFindingsPdf.objects.filter(request=request_details).delete()
-
-    poam_findings = (
-        SecurityFindings.objects.filter(
-            request=request_details,
-            is_active=True,
-            tester_status=SecurityFindings.STATUS_NEW,
-        )
-        .exclude(
-            residual_risk=SecurityFindings.SEVERITY_INFORMATIONAL,
-        )
-        .exclude(
-            overall_risk=SecurityFindings.SEVERITY_INFORMATIONAL,
-        )
-        .exclude(
-            severity=SecurityFindings.SEVERITY_INFORMATIONAL,
-        )
-    )
-
-    if request_details.prod_onboarding_done:
-        poam_findings = poam_findings.exclude(env=SecurityFindings.ENV_STAGING)
-
-    findings_pdf_rows = [
-        SecurityFindingsPdf(
-            request=request_details,
-            unique_id=f.unique_id,
-            title=f.title,
-            description=f.description,
-            severity=f.severity,
-            impact=f.impact,
-            recommendation=f.recommendation,
-            affected_device=f.affected_device,
-            compensating_control=f.compensating_control,
-            likelihood=f.likelihood,
-            residual_risk=f.residual_risk,
-            overall_risk=f.overall_risk,
-            risk_status=f.risk_status,
-            action_owner=f.action_owner,
-            cwe_id=f.cwe_id,
-            cwe_other=f.cwe_other,
-            owasp_id=f.owasp_id,
-            notes=f.notes,
-            evidence_filenames=f.evidence_filenames,
-            date_identified=f.date_identified,
-            target_resolve_date=f.target_resolve_date,
-            finding_category=f.finding_category,
-            tester_comments=f.tester_comments,
-            tester_response_date=f.tester_response_date,
-            created_by=user,
-        )
-        for f in poam_findings
-    ]
-
-    SecurityFindingsPdf.objects.bulk_create(findings_pdf_rows)
-
-    return archived_version
+}

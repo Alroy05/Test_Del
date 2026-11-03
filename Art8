@@ -1,0 +1,78 @@
+def ingest_header_2_json(
+    html_content: str,
+    json_data: dict,
+    request_obj,
+) -> str:
+    if not isinstance(html_content, str) or not html_content.strip():
+        raise ValueError(
+            "html_content must be a non-empty string."
+        )
+
+    if not isinstance(json_data, dict):
+        raise ValueError(
+            "json_data must be a dictionary."
+        )
+
+    description = str(
+        json_data.get("description") or ""
+    ).strip()
+
+    was_html_encoded = (
+        "&lt;" in html_content
+        and "&gt;" in html_content
+    )
+
+    decoded_html = (
+        unescape(html_content)
+        if was_html_encoded
+        else html_content
+    )
+
+    soup = BeautifulSoup(
+        decoded_html,
+        "html.parser",
+    )
+
+    description_element = soup.find("h5")
+
+    if description_element is None:
+        raise ValueError(
+            "Could not find the header_2 description element: h5"
+        )
+
+    description_element.clear()
+
+    paragraphs = [
+        paragraph.strip()
+        for paragraph in description.split("\n\n")
+        if paragraph.strip()
+    ]
+
+    for index, paragraph in enumerate(paragraphs):
+        description_element.append(paragraph)
+
+        if index < len(paragraphs) - 1:
+            description_element.append(
+                soup.new_tag("br")
+            )
+            description_element.append(
+                soup.new_tag("br")
+            )
+
+    rendered_html = str(soup)
+
+    if was_html_encoded:
+        return escape(
+            rendered_html,
+            quote=False,
+        )
+
+    return rendered_html
+
+
+
+<div id="header_2_1"><div style="max-width:83%!important;margin-left:auto;margin-right:auto;">
+                <div id="header_2_1_img_show">
+                    
+                <img class="architecture_img" src="https://xyz.shg.abc.com/api/storage/serve-architecture-files/937755/178575945911_diagram.png/" style="width:100%; display: block; margin-left: auto; margin-right: auto;"><br>Figure 1 depicts the logical architecture of Adobe Workfront, highlighting secure client access via enterprise integrations into Adobe-managed application services. At its core, the platform delivers workflow orchestration, project planning, collaboration, reporting, event notifications, and administrative controls. These services interact with encrypted persistence layers and external enterprise systems exclusively over authenticated APIs. The design enforces a strict separation between the customer-facing access tier, Adobe-managed application services, and backend data services, all contained within the SaaS provider’s secure boundary.</div>
+            </div></div>

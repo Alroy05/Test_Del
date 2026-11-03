@@ -1,269 +1,493 @@
+"""
+Migrate legacy HTML-based SARs (SarTemplateData) to JSON-based SARs
+(SarTemplateJsonData).
+
+Examples
+--------
+# Preview one SAR, print the JSON, check it renders through the ingestion pipeline
+python manage.py migrate_sar_html_to_json --sgp-id SGP-1234 --dry-run --validate -v 2
+
+# Dump what would be created for every un-migrated SAR, without writing
+python manage.py migrate_sar_html_to_json --all --dry-run --output-dir /tmp/sar_json
+
+# Migrate everything not yet migrated
+python manage.py migrate_sar_html_to_json --all --user-email admin@example.com
+
+# Re-migrate one SAR, overwrite its JSON (old JSON archived), and re-render HTML
+python manage.py migrate_sar_html_to_json --sgp-id SGP-1234 --force --refresh-html
+"""
+
+import json
+from pathlib import Path
+
+from django.contrib.auth import get_user_model
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
-from django.utils import timezone
 
-from app.models import LogUpdate, RequestorTeam
-from app.constants import ERRORS
-from app.models.user import UserData
-from app.utils import build_risk_treatment_findings_html, common_email_notification, get_notification_user_ids
+from app.models import RequestorTeam, SarTemplateData, SarTemplateJsonData
+from app.models.default_template_data import DefaultTemplateData
+from app.models.sar_json_history_data import SarJsonHistoryData
+from app.models.sar_template_data_history import SarTemplateDataHistory
+from app.services.initialize_form_service import initialize_sar_sections
+from app.services.sar_form_service import (
+    INGESTION_FUNCTION_MAP,
+    refresh_sar_html,
+    render_header_html,
+)
+from app.crypto import hash_field
+from app.constants import GSSR_USER_EMAIL
+from app.management.commands.sar_html_json_migration import (
+    LEGACY_HTML_SUPERSEDED_BY,
+    SarParseContext,
+    build_control_placeholder_index,
+    build_migration_plan,
+)
 
 
-def send_clearance_emails(request_details, user, ato_status):
-    try:
+class Command(BaseCommand):
+    help = (
+        "Convert legacy HTML SAR sections (SarTemplateData) into JSON SAR "
+        "sections (SarTemplateJsonData)."
+    )
+
+    # ------------------------------------------------------------------ args
+
+    def add_arguments(self, parser):
+        target = parser.add_mutually_exclusive_group(required=True)
+        target.add_argument(
+            "--sgp-id",
+            action="append",
+            dest="sgp_ids",
+            help="SGP id to migrate. Repeat for several.",
+        )
+        target.add_argument(
+            "--all",
+            action="store_true",
+            help=(
+                "Every request with active HTML SAR rows. Requests that already "
+                "have active JSON rows are skipped unless --force is given."
+            ),
+        )
+
+        parser.add_argument("--limit", type=int, help="Process at most N requests.")
+        parser.add_argument("--user-id", type=int, help="User recorded as created_by.")
+        parser.add_argument("--user-email", help="User recorded as created_by.")
+
+        parser.add_argument(
+            "--dry-run",
+            action="store_true",
+            help="Parse and report only; nothing is written.",
+        )
+        parser.add_argument(
+            "--force",
+            action="store_true",
+            help=(
+                "Overwrite JSON sections that already exist (the old JSON is "
+                "archived to SarJsonHistoryData). Without it, existing sections "
+                "are left untouched."
+            ),
+        )
+        parser.add_argument(
+            "--validate",
+            action="store_true",
+            help=(
+                "Render each JSON section through the ingestion functions "
+                "(read-only) to confirm it is accepted."
+            ),
+        )
+        parser.add_argument(
+            "--strict",
+            action="store_true",
+            help="Skip a SAR entirely if any section fails to parse or validate.",
+        )
+        parser.add_argument(
+            "--skip-defaults",
+            action="store_true",
+            help=(
+                "Do not create default JSON for sections missing from the legacy "
+                "HTML (by default initialize_sar_sections fills them in)."
+            ),
+        )
+        parser.add_argument(
+            "--refresh-html",
+            action="store_true",
+            help=(
+                "Mark migrated sections needs_refresh and re-render the HTML "
+                "from the JSON via refresh_sar_html. Without it the existing "
+                "HTML is left exactly as it is."
+            ),
+        )
+        parser.add_argument(
+            "--archive-legacy-html",
+            action="store_true",
+            help=(
+                "With --refresh-html: move legacy-only HTML rows that the JSON "
+                "now supersedes (header_3_4, header_7) to SarTemplateDataHistory."
+            ),
+        )
+        parser.add_argument(
+            "--output-dir",
+            help="Write the extracted JSON for each SAR to <dir>/<sgp_id>.json.",
+        )
+
+    # ------------------------------------------------------------------ main
+
+    def handle(self, *args, **options):
+        if options["archive_legacy_html"] and not options["refresh_html"]:
+            raise CommandError("--archive-legacy-html requires --refresh-html.")
+
+        self.verbosity = options["verbosity"]
+        user = None if options["dry_run"] else self._resolve_user(options)
+
+        output_dir = None
+        if options["output_dir"]:
+            output_dir = Path(options["output_dir"])
+            output_dir.mkdir(parents=True, exist_ok=True)
+
+        requests = self._get_requests(options)
+        total = len(requests)
+
+        if not total:
+            self.stdout.write(self.style.WARNING("No SARs to migrate."))
+            return
+
+        mode = "DRY RUN" if options["dry_run"] else "MIGRATING"
+        self.stdout.write(self.style.MIGRATE_HEADING(f"{mode}: {total} SAR(s)"))
+
+        # The legacy controls template (is_active=3) is what ingest_header_3_2_json
+        # renders old SARs with; use it to restore placeholder_text for controls
+        # whose implementation text was already filled in.
+        old_controls_template = (
+            DefaultTemplateData.objects.filter(header_name="header_3_2", is_active=3)
+            .order_by("-id")
+            .values_list("header_data", flat=True)
+            .first()
+        )
+        self.control_placeholders = build_control_placeholder_index(old_controls_template)
+        if not old_controls_template:
+            self.stdout.write(
+                self.style.WARNING(
+                    "No DefaultTemplateData(header_3_2, is_active=3) found; old-layout "
+                    "controls will not render until it exists."
+                )
+            )
+
+        totals = {"migrated": 0, "skipped": 0, "failed": 0, "with_warnings": 0}
+
+        for index, request_details in enumerate(requests, start=1):
+            prefix = f"[{index}/{total}] {request_details.sgp_id}"
+            try:
+                outcome = self._process_request(
+                    request_details, user, options, output_dir, prefix
+                )
+            except Exception as exc:  # noqa: BLE001 - keep going with other SARs
+                totals["failed"] += 1
+                self.stdout.write(self.style.ERROR(f"{prefix}: FAILED - {exc}"))
+                if self.verbosity >= 3:
+                    import traceback
+                    self.stdout.write(traceback.format_exc())
+                continue
+
+            totals[outcome["status"]] += 1
+            if outcome["warnings"]:
+                totals["with_warnings"] += 1
+
+        self.stdout.write("")
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Done. migrated={totals['migrated']} skipped={totals['skipped']} "
+                f"failed={totals['failed']} with_warnings={totals['with_warnings']}"
+            )
+        )
+
+    # -------------------------------------------------------------- per SAR
+
+    def _process_request(self, request_details, user, options, output_dir, prefix):
+        legacy_rows = self._latest_legacy_rows(request_details)
+
+        if not legacy_rows:
+            self.stdout.write(self.style.WARNING(f"{prefix}: no active HTML rows, skipped."))
+            return {"status": "skipped", "warnings": False}
+
+        ctx = SarParseContext.from_request(
+            request_details,
+            request_type_new=getattr(RequestorTeam, "REQUEST_TYPE_NEW", None),
+            control_placeholders=self.control_placeholders,
+        )
+        plan = build_migration_plan(legacy_rows, ctx)
+
+        validation_errors = {}
+        if options["validate"]:
+            validation_errors = self._validate(plan, request_details)
+
+        if output_dir is not None:
+            payload = {
+                "sgp_id": request_details.sgp_id,
+                **plan.as_dict(),
+                "validation_errors": validation_errors,
+            }
+            (output_dir / f"{request_details.sgp_id}.json").write_text(
+                json.dumps(payload, indent=2, default=str), encoding="utf-8"
+            )
+
+        self._report_plan(prefix, plan, validation_errors)
+        has_warnings = bool(plan.warnings or plan.errors or validation_errors)
+
+        if options["strict"] and (plan.errors or validation_errors):
+            self.stdout.write(
+                self.style.ERROR(f"{prefix}: skipped (--strict, see errors above).")
+            )
+            return {"status": "skipped", "warnings": has_warnings}
+
+        if options["dry_run"]:
+            if self.verbosity >= 2:
+                self.stdout.write(json.dumps(plan.sections, indent=2, default=str))
+            return {"status": "migrated", "warnings": has_warnings}
+
         with transaction.atomic():
-            _advance_status(user, request_details, ato_status)
+            written, kept = self._write_sections(
+                request_details,
+                plan.sections,
+                user,
+                force=options["force"],
+                needs_refresh=options["refresh_html"],
+            )
 
-        return {
-            "success": True,
-            "message": "Clearance emails sent successfully",
-            "errors": [],
-        }
+            defaults_created = []
+            if not options["skip_defaults"]:
+                before = set(self._active_json_headers(request_details))
+                initialize_sar_sections(request_details, user)
+                defaults_created = sorted(
+                    set(self._active_json_headers(request_details)) - before
+                )
 
-    except Exception as ex:
-        msg = ERRORS.get("syntax_error_access", "Syntax error or database access error")
-        return _err(msg, [str(ex)])
+            refresh_result = None
+            archived_legacy = []
+            if options["refresh_html"]:
+                refresh_result = refresh_sar_html(request_details, user)
+                if options["archive_legacy_html"]:
+                    archived_legacy = self._archive_superseded_html(
+                        request_details, user, refresh_result
+                    )
 
-
-def transfer_qa_tool_data_to_prod(
-    request_instance,
-):
-    field_mapping = {
-        # GHAS identifiers
-        "ghas_org_name_prod": "ghas_org_name",
-        "ghas_repo_names_prod": "ghas_repo_names",
-        "ghas_scan_type_prod": "ghas_scan_type",
-
-        # FOD identifiers
-        "release_id_prod": "release_id",
-
-        # Mendio identifiers
-        "mend_product_name_prod": "mend_product_name",
-        "mend_project_names_prod": "mend_project_names",
-        "mend_project_tokens_prod": "mend_project_tokens",
-
-        # Fetch values
-        "fetch_ghas_prod": "fetch_ghas",
-        "fetch_fod_prod": "fetch_fod",
-        "fetch_mendio_prod": "fetch_mendio",
-        "fetch_qualys_prod": "fetch_qualys",
-
-        #CSPM is skipped intentionally
-    }
-
-    for prod_field, qa_field in field_mapping.items():
-        setattr(
-            request_instance,
-            prod_field,
-            getattr(request_instance, qa_field),
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"{prefix}: wrote {len(written)} section(s)"
+                + (f", kept existing {len(kept)}" if kept else "")
+                + (f", defaults {defaults_created}" if defaults_created else "")
+            )
         )
+        if kept and self.verbosity >= 2:
+            self.stdout.write(f"    kept existing JSON (use --force to overwrite): {kept}")
 
-    request_instance.save(
-        update_fields=[
-            *field_mapping.keys(),
-            "updated_on",
-        ]
-    )
+        if refresh_result is not None:
+            failed = refresh_result.get("failed_headers") or {}
+            self.stdout.write(
+                f"    refreshed HTML: {refresh_result.get('refreshed_headers')}"
+            )
+            for header_name, message in failed.items():
+                self.stdout.write(self.style.ERROR(f"    render failed {header_name}: {message}"))
+            if archived_legacy:
+                self.stdout.write(f"    archived legacy HTML: {archived_legacy}")
 
-    return request_instance
+        return {"status": "migrated", "warnings": has_warnings}
 
+    # ---------------------------------------------------------------- reads
 
-def _advance_status(
-    user,
-    request_details: RequestorTeam,
-    ato_status,
-) -> None:
-    old_status = request_details.status
+    def _get_requests(self, options):
+        target_field = SarTemplateData._meta.get_field("request").target_field.attname
 
-    if (
-        request_details.solution_type
-        != RequestorTeam.SOLUTION_TYPE_SAAS
-        and not request_details.prod_onboarding_done
-    ):
-        new_status = RequestorTeam.STATUS_PROD_ONBOARDING
-    else:
-        new_status = RequestorTeam.STATUS_CONTINUOUS_MONITORING
+        if options["sgp_ids"]:
+            queryset = RequestorTeam.objects.filter(sgp_id__in=options["sgp_ids"])
+            found = set(queryset.values_list("sgp_id", flat=True))
+            missing = [s for s in options["sgp_ids"] if s not in found]
+            if missing:
+                self.stdout.write(self.style.WARNING(f"Unknown SGP id(s): {missing}"))
+        else:
+            html_request_ids = (
+                SarTemplateData.objects.filter(is_active=1)
+                .values_list("request", flat=True)
+                .distinct()
+            )
+            queryset = RequestorTeam.objects.filter(
+                **{f"{target_field}__in": html_request_ids}
+            )
 
-    LogUpdate.objects.create(
-        request=request_details,
-        event=LogUpdate.STATUS_EVENT,
-        old_value=old_status,
-        new_value=new_status,
-        response_for=LogUpdate.RES_FOR_REQUEST,
-        created_by=user,
-        user_role=user.current_role,
-    )
+            if not options["force"]:
+                json_target = SarTemplateJsonData._meta.get_field(
+                    "request"
+                ).target_field.attname
+                json_request_ids = (
+                    SarTemplateJsonData.objects.filter(is_active=1)
+                    .values_list("request", flat=True)
+                    .distinct()
+                )
+                queryset = queryset.exclude(**{f"{json_target}__in": json_request_ids})
 
-    old_sub_status = request_details.sub_status
+        queryset = queryset.order_by(target_field)
+        if options["limit"]:
+            queryset = queryset[: options["limit"]]
+        return list(queryset)
 
-    if (
-        request_details.solution_type
-        != RequestorTeam.SOLUTION_TYPE_SAAS
-        and not request_details.prod_onboarding_done
-    ):
-        new_sub_status = RequestorTeam.SUB_STATUS_SEC_FINDINGS_VALID
-    else:
-        new_sub_status = RequestorTeam.SUB_STATUS_REPORT
-
-    LogUpdate.objects.create(
-        request=request_details,
-        event=LogUpdate.STATUS_EVENT,
-        old_value=old_sub_status,
-        new_value=new_sub_status,
-        response_for=LogUpdate.RES_FOR_SUB_STATUS,
-        created_by=user,
-        user_role=user.current_role,
-    )
-
-    request_details.status = new_status
-    request_details.sub_status = new_sub_status
-
-    if ato_status:
-        old_ato_status = request_details.ato_status
-        new_ato_status = int(ato_status)
-
-        request_details.ato_status = new_ato_status
-
-        LogUpdate.objects.create(
-            request=request_details,
-            event=LogUpdate.ATO_STATUS_EVENT,
-            old_value=str(old_ato_status),
-            new_value=str(new_ato_status),
-            response_for="ATO Status",
-            created_by=user,
-            user_role=user.current_role,
+    def _latest_legacy_rows(self, request_details):
+        rows = (
+            SarTemplateData.objects.filter(request=request_details, is_active=1)
+            .order_by("header_name", "-created_date", "-id")
+            .values_list("header_name", "header_data")
         )
+        latest = {}
+        for header_name, header_data in rows:
+            if header_name and header_name not in latest:
+                latest[header_name] = header_data or ""
+        return latest
 
-    # common_email_notification(
-    #     requestor=request_details, email_template="status_change_csa", user=user
-    # )
-    if request_details.cycle_number == 1:
-        transfer_qa_tool_data_to_prod(request_details)
+    def _active_json_headers(self, request_details):
+        return SarTemplateJsonData.objects.filter(
+            request=request_details, is_active=1
+        ).values_list("header_name", flat=True)
 
-    request_details.sar_status = RequestorTeam.SAR_CREATED
-    request_details.last_publish_date = timezone.now()
+    def _resolve_user(self, options):
+        user_model = get_user_model()
 
-    if not request_details.first_publish_date:
-        request_details.first_publish_date = timezone.now()
+        if options["user_id"]:
+            user = user_model.objects.filter(
+                pk=options["user_id"]
+            ).first()
 
-    request_details.cycle_number += 1
-    request_details.sar_ato_email_date = timezone.now()
-    request_details.save()
-
-    solution_team_user_ids = get_notification_user_ids(
-        "request_owner",
-        request_details,
-    )
-
-    if solution_team_user_ids:
-        if new_status == RequestorTeam.STATUS_PROD_ONBOARDING:
-            email_template = "assessment_complete_provisional"
-
-        elif new_status == RequestorTeam.STATUS_CONTINUOUS_MONITORING:
-            email_template = "assessment_complete_compliant"
+        elif options["user_email"]:
+            user = user_model.objects.filter(
+                email_hash=hash_field(options["user_email"])
+            ).first()
 
         else:
-            email_template = None
+            user = user_model.objects.filter(
+                email_hash=hash_field(GSSR_USER_EMAIL)
+            ).first()
 
-        if email_template:
-            common_email_notification(
-                requestor=request_details,
-                email_template=email_template,
-                user=user,
-                extra_data={
-                    "user_id": solution_team_user_ids,
-                },
+        if user is None:
+            raise CommandError(
+                "Could not resolve the user to record as created_by. "
+                "Verify GSSR_USER_EMAIL or pass --user-id/--user-email."
             )
 
-    accepted_findings_html, mitigation_findings_html, has_findings = (
-        build_risk_treatment_findings_html(
-            request_details,
+        return user
+
+    # --------------------------------------------------------------- writes
+
+    def _write_sections(self, request_details, sections, user, force, needs_refresh):
+        existing_rows = {}
+        for row in (
+            SarTemplateJsonData.objects.select_for_update()
+            .filter(request=request_details, is_active=1, header_name__in=sections.keys())
+            .order_by("header_name", "-created_date")
+        ):
+            existing_rows.setdefault(row.header_name, []).append(row)
+
+        written, kept = [], []
+
+        for header_name, json_data in sections.items():
+            rows = existing_rows.get(header_name, [])
+
+            if rows and not force:
+                kept.append(header_name)
+                continue
+
+            create_kwargs = {
+                "header_name": header_name,
+                "json_data": json_data,
+                "request": request_details,
+                "created_by": user,
+                "is_active": 1,
+                "needs_refresh": needs_refresh,
+            }
+            if rows:
+                create_kwargs["section_status"] = rows[0].section_status
+
+            for row in rows:
+                SarJsonHistoryData.objects.create(
+                    original_id=row.id,
+                    header_name=row.header_name,
+                    json_data=row.json_data,
+                    request=row.request,
+                    created_by=row.created_by,
+                    original_created_date=row.created_date,
+                    archived_by=user,
+                )
+                row.delete()
+
+            SarTemplateJsonData.objects.create(**create_kwargs)
+            written.append(header_name)
+
+        return written, kept
+
+    def _archive_superseded_html(self, request_details, user, refresh_result):
+        refreshed = set(refresh_result.get("refreshed_headers") or [])
+        archived = []
+
+        for legacy_header, json_header in LEGACY_HTML_SUPERSEDED_BY.items():
+            # header_5 may legitimately be "refreshed" as disabled (no HTML).
+            if json_header not in refreshed:
+                continue
+
+            for row in SarTemplateData.objects.select_for_update().filter(
+                request=request_details, header_name=legacy_header, is_active=1
+            ):
+                SarTemplateDataHistory.objects.create(
+                    original_id=row.id,
+                    header_name=row.header_name,
+                    header_data=row.header_data,
+                    request_id=row.request_id,
+                    comment=row.comment,
+                    created_by_id=row.created_by_id,
+                    original_created_date=row.created_date,
+                    archived_by_id=user.id,
+                )
+                row.delete()
+                archived.append(legacy_header)
+
+        return archived
+
+    # ------------------------------------------------------------ reporting
+
+    def _validate(self, plan, request_details):
+        errors = {}
+        for header_name, json_data in plan.sections.items():
+            if header_name not in INGESTION_FUNCTION_MAP:
+                continue
+            try:
+                render_header_html(
+                    header_name=header_name,
+                    json_data=json_data,
+                    request_obj=request_details,
+                )
+            except Exception as exc:  # noqa: BLE001
+                errors[header_name] = f"{type(exc).__name__}: {exc}"
+        return errors
+
+    def _report_plan(self, prefix, plan, validation_errors):
+        self.stdout.write(
+            f"{prefix}: parsed {len(plan.sections)} section(s)"
+            + (f", {len(plan.errors)} parse error(s)" if plan.errors else "")
+            + (f", {len(validation_errors)} validation error(s)" if validation_errors else "")
         )
-    )
 
-    if has_findings:
-        business_owner_email = str(
-            request_details.bussiness_sponser or ""
-        ).strip()
+        if self.verbosity >= 2:
+            for header_name, source in plan.sources.items():
+                self.stdout.write(f"    {source} -> {header_name}")
 
-        business_owner_name = (
-            " ".join(
-                value
-                for value in [
-                    str(
-                        request_details.business_sponsor_first_name
-                        or ""
-                    ).strip(),
-                    str(
-                        request_details.business_sponsor_last_name
-                        or ""
-                    ).strip(),
-                ]
-                if value
+        for header_name, message in plan.errors.items():
+            self.stdout.write(self.style.ERROR(f"    parse error {header_name}: {message}"))
+
+        for header_name, message in validation_errors.items():
+            self.stdout.write(self.style.ERROR(f"    validation {header_name}: {message}"))
+
+        if self.verbosity >= 1:
+            for header_name, messages in plan.warnings.items():
+                for message in messages:
+                    self.stdout.write(self.style.WARNING(f"    {header_name}: {message}"))
+
+        if plan.unmapped_legacy_headers and self.verbosity >= 2:
+            self.stdout.write(
+                f"    legacy HTML not migrated (no JSON equivalent): "
+                f"{plan.unmapped_legacy_headers}"
             )
-            or "Business Owner"
-        )
-
-        solution_team_emails = []
-
-        solution_team_users = UserData.objects.filter(
-            id__in=solution_team_user_ids,
-            is_active=True,
-            is_deleted=False,
-        )
-
-        for solution_team_user in solution_team_users:
-            solution_team_email = str(
-                solution_team_user.email or ""
-            ).strip()
-
-            if solution_team_email:
-                solution_team_emails.append(solution_team_email)
-
-        solution_team_emails = list(
-            dict.fromkeys(solution_team_emails)
-        )
-
-
-        leadership_emails = []
-
-        leadership_users = (
-            request_details.get_assigned_leadership_users()
-            .filter(
-                is_active=True,
-                is_deleted=False,
-            )
-        )
-
-        for leadership_user in leadership_users:
-            leadership_email = str(
-                leadership_user.email or ""
-            ).strip()
-
-            if leadership_email:
-                leadership_emails.append(leadership_email)
-
-        leadership_emails = list(
-            dict.fromkeys(leadership_emails)
-        )
-
-        if business_owner_email:
-            common_email_notification(
-                requestor=request_details,
-                email_template="findings_review_complete",
-                user=user,
-                extra_data={
-                    "user_id": [business_owner_email],
-                    "business_owner_name": business_owner_name,
-                    "accepted_findings_html": accepted_findings_html,
-                    "mitigation_findings_html": mitigation_findings_html,
-                    "solution_team_emails": solution_team_emails,
-                    "leadership_emails": leadership_emails,
-                },
-            )
-
-
-def _err(message: str, errors: list) -> dict:
-    return {"success": False, "message": message, "errors": errors}
-
-
-
-

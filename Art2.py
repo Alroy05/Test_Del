@@ -14,17 +14,25 @@ header_1 / 1_1 / 1_2 / 1_3 / 1_4 / 1_5 -> same names
 header_2 / header_2_1         -> same names
 header_3                      -> header_3
 header_3_2 (testing overview) -> header_3_1   (events table)
-header_3_4 (security controls)-> header_3_2   (controls, is_new=False)
+header_3_4 (security controls)-> header_3_2   (old or new controls template,
+                                                 picked per SAR, see below)
 header_6   (POA&M)            -> header_4     ({})
 header_7   (business consid.) -> header_5     (is_enabled / description)
 header_support_team           -> header_support_team
 addendum_header               -> addendum_header
+
+Security controls: the controls catalogue changed while SARs were being
+written, so a legacy SAR uses either CONTROLS_DICT_OLD (no ``is_new`` key) or
+CONTROLS_DICT (``is_new: True``). The parser matches every HTML row against
+both catalogues, picks the one that fits best, and emits the full catalogue in
+template order with the values from the HTML filled in.
 
 The parsers are pure functions (HTML in, dict out) so they can be unit
 tested without a database.
 """
 
 import copy
+import hashlib
 import re
 from dataclasses import dataclass, field
 from datetime import date, datetime
@@ -34,7 +42,7 @@ from urllib.parse import unquote, urlparse
 
 from bs4 import BeautifulSoup
 
-from app.constants import CONTROLS_DICT
+from app.constants import CONTROLS_DICT, CONTROLS_DICT_OLD
 from app.services.ingestion_service import (
     NEW_CATEGORY_TITLE_MAPPING,
     OLD_CATEGORY_TITLE_MAPPING,
@@ -314,6 +322,22 @@ def resolve_date(text, fallback=None, prefer_fallback_same_month=True):
     return parsed.isoformat(), True
 
 
+def stable_row_id(*parts, length=19):
+    """
+    Deterministic stand-in for the random base-36 row ids the SAR editor
+    gives revision rows (e.g. "et3bm0vzhxqmuv3a4vz"). Same input -> same id,
+    so dry runs and re-runs produce identical JSON.
+    """
+    digest = hashlib.sha1("|".join(str(p) for p in parts).encode("utf-8")).digest()
+    number = int.from_bytes(digest, "big")
+    alphabet = "0123456789abcdefghijklmnopqrstuvwxyz"
+    chars = []
+    while len(chars) < length:
+        number, rem = divmod(number, 36)
+        chars.append(alphabet[rem])
+    return "".join(chars)
+
+
 def _valid_risk(value):
     value = clean_text(value).upper()
     return value if value in RISK_COLOR_MAP else None
@@ -424,9 +448,12 @@ def parse_revision_history(html_content, ctx, warn):
         if not ok:
             warn(f"Revision {version!r}: could not parse date '{date_text}'.")
 
+        row_id = str(row.get("id") or "").strip() or stable_row_id(
+            ctx.sgp_id, "revision", len(revisions), version, date_text
+        )
         revisions.append(
             {
-                "id": int_or_none(row.get("id")),
+                "id": row_id,
                 "version": version,
                 "author": author,
                 "date": revision_date,
@@ -457,9 +484,14 @@ def parse_reviewers(html_content, ctx, warn):
         if not ok:
             warn(f"Reviewer {reviewer_name!r}: could not parse date '{date_text}'.")
 
+        row_id = str(row.get("id") or "").strip()
         reviewers.append(
             {
-                "id": int_or_none(row.get("id")),
+                # The command replaces this with the platform user's id when
+                # the name matches exactly one user (same as
+                # add_leadership_reviewer_on_approval writes); otherwise the
+                # 1-based row number is kept.
+                "id": int_or_none(row_id) or row_id or len(reviewers) + 1,
                 "reviewer": reviewer_name,
                 "date": reviewer_date,
             }
@@ -469,8 +501,17 @@ def parse_reviewers(html_content, ctx, warn):
 
 
 def parse_description_section(html_content, ctx, warn):
-    """header_1, header_2, header_3."""
+    """header_2: the description text is real content."""
     return {"description": description_from_headings(make_soup(html_content))}
+
+
+def parse_status_only_section(html_content, ctx, warn):
+    """
+    header_1, header_3: the JSON row only carries the section status; the
+    intro text is static and rendered by the template, so description stays
+    empty (an imported legacy text would be rendered twice).
+    """
+    return {"description": ""}
 
 
 def parse_header_1_1(html_content, ctx, warn):
@@ -578,14 +619,18 @@ def parse_header_1_4(html_content, ctx, warn):
         "users_4": "external_public",
         "users_5": "external_client",
     }
-    result = {json_key: False for json_key in mapping.values()}
+    # The JSON carries both the legacy users_N flags and the named flags.
+    result = {legacy_key: False for legacy_key in mapping}
+    result.update({json_key: False for json_key in mapping.values()})
 
     for checkbox in soup.find_all("input"):
         identifier = str(
             checkbox.get("value") or checkbox.get("name") or checkbox.get("id") or ""
         ).lower()
         if identifier in mapping:
-            result[mapping[identifier]] = is_checked(checkbox)
+            checked = is_checked(checkbox)
+            result[identifier] = checked
+            result[mapping[identifier]] = checked
 
     return result
 
@@ -689,7 +734,7 @@ def _event_type_from_radios(cell):
     return in_house, third_party
 
 
-def _parse_event_rows(table, warn, date_fallback=None, keep_ids=False):
+def _parse_event_rows(table, warn, date_fallback=None, keep_ids=False, month_only=False):
     events = []
     current = None
 
@@ -710,6 +755,8 @@ def _parse_event_rows(table, warn, date_fallback=None, keep_ids=False):
             test_date, ok = resolve_date(date_text, date_fallback)
             if not ok:
                 warn(f"Could not parse test date '{date_text}'.")
+            if month_only and test_date:
+                test_date = test_date[:7]  # header_3_1 stores "YYYY-MM"
 
             current = {
                 "event_name": node_text(name_cell),
@@ -739,15 +786,27 @@ def parse_testing_overview(html_content, ctx, warn):
             "testing-overview events table; it looks already migrated."
         )
 
-    description = description_from_headings(soup) or DEFAULT_HEADER_3_1_DESCRIPTION
+    # The intro paragraph is static template text; the JSON only stores the
+    # events. Flag SARs where someone edited it, so the change is not lost
+    # silently.
+    description = description_from_headings(soup)
+    if description and normalize_key(description) != normalize_key(
+        DEFAULT_HEADER_3_1_DESCRIPTION
+    ):
+        warn(
+            "Custom overview text is not part of the header_3_1 JSON and was "
+            "not migrated: " + description[:120]
+        )
 
     table = _find_table_with_header(soup, "event") or soup.find("table")
     if table is None:
         warn("Events table not found; header_3_1 will have no events.")
 
-    events = _parse_event_rows(table, warn, date_fallback=ctx.go_live_date)
+    events = _parse_event_rows(
+        table, warn, date_fallback=ctx.go_live_date, month_only=True
+    )
 
-    return {"description": description, "events": events}
+    return {"events": events}
 
 
 # --- Security controls (legacy header_3_4 -> header_3_2) -------------------
@@ -767,26 +826,85 @@ _YES_NO_VALUE_TO_KEY = {
 _EMPTY_STATUS_LABELS = {"", "-", "select status", "select"}
 
 
-def _controls_template_index():
-    """
-    Index CONTROLS_DICT controls by every string value they hold, so a legacy
-    row titled "System Hardening" can reuse the canonical control's key.
-    """
-    controls = CONTROLS_DICT.get("controls", []) if isinstance(CONTROLS_DICT, dict) else []
-    by_category_title = {}
-    by_title = {}
+def _alnum(value):
+    """Lower-case letters/digits only: "Backup / Disaster RecoveryVM ..." and
+    "Backup / Disaster Recovery" + "VM ..." compare equal."""
+    return re.sub(r"[^a-z0-9]+", "", normalize_key(value))
 
-    for control in controls:
-        if not isinstance(control, dict):
-            continue
-        category = control.get("category")
-        for value in control.values():
-            if isinstance(value, str) and value.strip():
-                normalized = normalize_key(value)
-                by_category_title.setdefault((category, normalized), control)
-                by_title.setdefault(normalized, control)
 
-    return by_category_title, by_title
+class ControlsCatalogue:
+    """One controls template (CONTROLS_DICT or CONTROLS_DICT_OLD)."""
+
+    def __init__(self, template, is_new, category_titles):
+        template = template if isinstance(template, dict) else {}
+        self.is_new = is_new
+        self.controls = [
+            control for control in template.get("controls", [])
+            if isinstance(control, dict) and control.get("key")
+        ]
+        self.by_key = {control["key"]: control for control in self.controls}
+        # normalized category title -> category key
+        self.category_titles = {
+            normalize_key(title): key for key, title in category_titles.items()
+        }
+        self.categories = set(category_titles) | {
+            control.get("category") for control in self.controls
+        }
+
+    def empty_json(self):
+        data = {"is_new": True} if self.is_new else {}
+        data["controls"] = [copy.deepcopy(control) for control in self.controls]
+        return data
+
+    def match(self, title, hint, category=None, explicit_key=None, used=()):
+        """
+        Return (template_control, score) for a legacy row, or (None, 0).
+
+        Score 3: explicit key or "title + hint" equals the template's control
+                 text (old templates fold the hint into the control text).
+        Score 2: the title alone equals the control text or key.
+        Score 1: the control text starts with the title.
+        Within a tier a control from the same category is preferred.
+        """
+        if explicit_key and explicit_key in self.by_key and explicit_key not in used:
+            return self.by_key[explicit_key], 3
+
+        title_alnum = _alnum(title)
+        full_alnum = _alnum(f"{title} {hint}") if hint else None
+        if not title_alnum:
+            return None, 0
+
+        available = [c for c in self.controls if c["key"] not in used]
+
+        def texts(control):
+            return {
+                _alnum(control.get(field_name))
+                for field_name in ("control", "title", "key")
+                if control.get(field_name)
+            }
+
+        tiers = (
+            (3, lambda c: full_alnum is not None and full_alnum in texts(c)),
+            (2, lambda c: title_alnum in texts(c) or slugify_key(title) == c["key"]),
+            (
+                1,
+                lambda c: len(title_alnum) >= 4
+                and _alnum(c.get("control")).startswith(title_alnum),
+            ),
+        )
+        for score, predicate in tiers:
+            candidates = [c for c in available if predicate(c)]
+            if candidates:
+                same_category = [c for c in candidates if c.get("category") == category]
+                return (same_category or candidates)[0], score
+        return None, 0
+
+
+def _controls_catalogues():
+    return (
+        ControlsCatalogue(CONTROLS_DICT_OLD, False, OLD_CATEGORY_TITLE_MAPPING),
+        ControlsCatalogue(CONTROLS_DICT, True, NEW_CATEGORY_TITLE_MAPPING),
+    )
 
 
 def _parse_status(cell, control_key, warn, title):
@@ -814,7 +932,7 @@ def _parse_status(cell, control_key, warn, title):
     return ""
 
 
-def _parse_implementation(cell):
+def _parse_implementation(cell, template_placeholder=""):
     text = node_text(cell)
     if text in {"", "-"}:
         return "", ""
@@ -825,17 +943,18 @@ def _parse_implementation(cell):
     if placeholder_flag or bracketed:
         return "", (bracketed.group(1).strip() if bracketed else text)
 
+    # Some renderers wrote the placeholder without brackets.
+    if template_placeholder and _alnum(text) == _alnum(template_placeholder):
+        return "", template_placeholder
+
     return "\n\n".join(element_paragraphs(cell)) or text, ""
 
 
 def _iter_security_rows(soup, warn):
     """
-    Walk the control tables. Returns (is_new, rows) where each row is
-    (category, tr, cells[:4], requirement_title, requirement_hint).
+    Walk the control tables. Returns a list of
+    (table_title, tr, cells[:4], requirement_title, requirement_hint).
     """
-    old_titles = {normalize_key(v): k for k, v in OLD_CATEGORY_TITLE_MAPPING.items()}
-    new_titles = {normalize_key(v): k for k, v in NEW_CATEGORY_TITLE_MAPPING.items()}
-
     tables = []
     for table in soup.find_all("table"):
         heading = table.select_one("thead tr th")
@@ -845,22 +964,12 @@ def _iter_security_rows(soup, warn):
     if not tables:
         raise ValueError("No security-control tables found.")
 
-    old_only = sum(1 for t, _ in tables if t in old_titles and t not in new_titles)
-    new_only = sum(1 for t, _ in tables if t in new_titles and t not in old_titles)
-    is_new = new_only > old_only
-    title_map = new_titles if is_new else old_titles
-
     rows = []
     for title, table in tables:
-        category = title_map.get(title)
-        if category is None:
-            warn(f"Unknown control category table '{title}', skipped.")
-            continue
-
         for row in _table_body_rows(table):
             cells = row.find_all("td", recursive=False)
             if len(cells) < 4:
-                warn(f"{category}: row with {len(cells)} cells skipped.")
+                warn(f"'{title}': row with {len(cells)} cells skipped.")
                 continue
 
             requirement_cell = cells[0]
@@ -868,83 +977,168 @@ def _iter_security_rows(soup, warn):
                 node_text(requirement_cell.find("b")) or node_text(requirement_cell)
             )
             requirement_hint = node_text(requirement_cell.find("h6"))
-            rows.append((category, row, cells[:4], requirement_title, requirement_hint))
+            rows.append((title, row, cells[:4], requirement_title, requirement_hint))
 
-    return is_new, rows
+    return rows
+
+
+def _table_category(table_title, catalogue, other):
+    return catalogue.category_titles.get(table_title) or other.category_titles.get(
+        table_title
+    )
+
+
+def choose_controls_catalogue(rows, catalogues=None):
+    """
+    Decide whether a SAR was written against the old or the new controls.
+
+    Every row is matched against both catalogues (rows matching the full
+    "title + hint" text weigh more than bare-title matches), and every table
+    title found in only one catalogue adds a point. Ties go to the old
+    catalogue, because only pre-JSON SARs are migrated.
+    """
+    old, new = catalogues or _controls_catalogues()
+    scores = {False: 0, True: 0}
+
+    for catalogue in (old, new):
+        used = set()
+        for table_title, row, _cells, title, hint in rows:
+            category = catalogue.category_titles.get(table_title)
+            control, score = catalogue.match(
+                title, hint, category,
+                explicit_key=str(row.get("data-control-key") or "").strip() or None,
+                used=used,
+            )
+            if control is not None:
+                used.add(control["key"])
+                scores[catalogue.is_new] += score
+
+    for table_title in {row[0] for row in rows}:
+        in_old = table_title in old.category_titles
+        in_new = table_title in new.category_titles
+        if in_old and not in_new:
+            scores[False] += 1
+        elif in_new and not in_old:
+            scores[True] += 1
+
+    chosen, other = (new, old) if scores[True] > scores[False] else (old, new)
+    return chosen, other, scores
 
 
 def parse_security_controls(html_content, ctx, warn):
-    """Legacy header_3_4 -> JSON header_3_2."""
-    soup = make_soup(html_content)
-    is_new, rows = _iter_security_rows(soup, warn)
-    by_category_title, by_title = _controls_template_index()
+    """
+    Legacy header_3_4 -> JSON header_3_2.
 
-    controls = []
+    Output has exactly the shape of the chosen template: CONTROLS_DICT_OLD ->
+    {"controls": [...]}, CONTROLS_DICT -> {"is_new": True, "controls": [...]},
+    each control with key / category / status / comment / control /
+    placeholder_text / implementation_details, in template order.
+    """
+    soup = make_soup(html_content)
+    rows = _iter_security_rows(soup, warn)
+    catalogue, other, _scores = choose_controls_catalogue(rows)
+
+    filled = {}
+    extras = []
     used_keys = set()
 
-    for category, row, cells, requirement_title, requirement_hint in rows:
+    for table_title, row, cells, requirement_title, requirement_hint in rows:
         _, implementation_cell, status_cell, comment_cell = cells
-        title_key = normalize_key(requirement_title)
+        table_category = _table_category(table_title, catalogue, other)
+        explicit_key = str(row.get("data-control-key") or "").strip() or None
 
-        template = (
-            by_category_title.get((category, title_key)) or by_title.get(title_key)
+        template, _score = catalogue.match(
+            requirement_title, requirement_hint, table_category,
+            explicit_key=explicit_key, used=used_keys,
         )
 
-        control_key = (
-            str(row.get("data-control-key") or "").strip()
-            or (template or {}).get("key")
-            or slugify_key(requirement_title)
-        )
-        base_key, suffix = control_key, 2
-        while control_key in used_keys:
-            control_key = f"{base_key}_{suffix}"
-            suffix += 1
-        used_keys.add(control_key)
+        if template is not None:
+            control = copy.deepcopy(template)
+        else:
+            if table_category is None:
+                warn(
+                    f"Control '{requirement_title}' in unknown table "
+                    f"'{table_title}' matches no template control; skipped."
+                )
+                continue
+            base_key = explicit_key or slugify_key(requirement_title)
+            control_key, suffix = base_key, 2
+            while control_key in used_keys or control_key in catalogue.by_key:
+                control_key = f"{base_key}_{suffix}"
+                suffix += 1
+            control = {
+                "key": control_key,
+                "category": table_category,
+                "status": "",
+                "comment": "",
+                "control": clean_text(f"{requirement_title} {requirement_hint}"),
+                "placeholder_text": "",
+                "implementation_details": "",
+            }
+            warn(
+                f"Control '{requirement_title}' is not in the "
+                f"{'new' if catalogue.is_new else 'old'} controls template; "
+                f"kept as extra control '{control_key}'."
+            )
 
-        implementation_details, placeholder_text = _parse_implementation(
-            implementation_cell
+        used_keys.add(control["key"])
+
+        implementation_details, html_placeholder = _parse_implementation(
+            implementation_cell, control.get("placeholder_text") or ""
         )
         comment = "\n\n".join(element_paragraphs(comment_cell))
         if comment.strip() == "-":
             comment = ""
 
-        control = copy.deepcopy(template) if template else {
-            "title": requirement_title,
-            "description": requirement_hint,
-        }
-        control.update(
-            {
-                "key": control_key,
-                "category": category,
-                "status": _parse_status(status_cell, control_key, warn, requirement_title),
-                "implementation_details": implementation_details,
-                "comment": comment,
-            }
+        control["status"] = _parse_status(
+            status_cell, control["key"], warn, requirement_title
         )
+        control["implementation_details"] = implementation_details
+        control["comment"] = comment
         control["placeholder_text"] = (
-            placeholder_text
-            or ctx.control_placeholders.get((category, title_key))
-            or control.get("placeholder_text")
+            control.get("placeholder_text")
+            or html_placeholder
+            or ctx.control_placeholders.get(
+                (table_category, normalize_key(requirement_title))
+            )
             or ""
         )
-        controls.append(control)
 
-    return {"is_new": is_new, "controls": controls}
+        if template is not None:
+            filled[control["key"]] = control
+        else:
+            extras.append(control)
+
+    result = catalogue.empty_json()
+    missing = [c["key"] for c in result["controls"] if c["key"] not in filled]
+    result["controls"] = [
+        filled.get(control["key"], control) for control in result["controls"]
+    ] + extras
+
+    if missing:
+        warn(
+            f"{len(missing)} template control(s) not present in the HTML were "
+            f"added empty: {missing}"
+        )
+    return result
 
 
 def build_control_placeholder_index(template_html):
     """
     Parse a default (unfilled) controls template and return
     {(category, normalized requirement title): placeholder_text}.
+    Only used as a last resort for rows that match no template control.
     """
     if not (template_html or "").strip():
         return {}
 
-    _, rows = _iter_security_rows(make_soup(template_html), lambda message: None)
+    old, new = _controls_catalogues()
+    rows = _iter_security_rows(make_soup(template_html), lambda message: None)
     index = {}
-    for category, _row, cells, requirement_title, _hint in rows:
+    for table_title, _row, cells, requirement_title, _hint in rows:
+        category = _table_category(table_title, old, new)
         _, placeholder_text = _parse_implementation(cells[1])
-        if placeholder_text:
+        if placeholder_text and category:
             index[(category, normalize_key(requirement_title))] = placeholder_text
     return index
 
@@ -989,6 +1183,9 @@ def parse_addendum(html_content, ctx, warn):
     nearest preceding <h3> gives its date, and <h5> text before it is the
     description.
     """
+    if html_content is None:
+        return {"is_enabled": False, "subsections": []}
+
     soup = make_soup(html_content)
     root = soup.select_one(".addendum_subsection") or soup
 
@@ -1074,7 +1271,7 @@ SECTION_SPECS = (
     SectionSpec("header_first_page", ("header_first_page",), parse_header_first_page),
     SectionSpec("header_revision_second_page", ("header_revision_second_page",), parse_revision_history),
     SectionSpec("header_reviewer_second_page", ("header_reviewer_second_page",), parse_reviewers),
-    SectionSpec("header_1", ("header_1",), parse_description_section),
+    SectionSpec("header_1", ("header_1",), parse_status_only_section),
     SectionSpec("header_1_1", ("header_1_1",), parse_header_1_1),
     SectionSpec("header_1_2", ("header_1_2",), parse_header_1_2),
     SectionSpec("header_1_3", ("header_1_3",), parse_header_1_3),
@@ -1082,13 +1279,13 @@ SECTION_SPECS = (
     SectionSpec("header_1_5", ("header_1_5",), parse_header_1_5),
     SectionSpec("header_2", ("header_2",), parse_description_section),
     SectionSpec("header_2_1", ("header_2_1",), parse_header_2_1),
-    SectionSpec("header_3", ("header_3",), parse_description_section),
+    SectionSpec("header_3", ("header_3",), parse_status_only_section),
     SectionSpec("header_3_1", ("header_3_2",), parse_testing_overview),
     SectionSpec("header_3_2", ("header_3_4",), parse_security_controls),
     SectionSpec("header_4", ("header_6",), parse_poam),
     SectionSpec("header_5", ("header_7",), parse_business_considerations, parse_when_missing=True),
     SectionSpec("header_support_team", ("header_support_team",), parse_support_team),
-    SectionSpec("addendum_header", ("addendum_header",), parse_addendum),
+    SectionSpec("addendum_header", ("addendum_header",), parse_addendum, parse_when_missing=True),
 )
 
 
@@ -1112,8 +1309,13 @@ def build_migration_plan(legacy_rows, ctx):
             plan.warn(_header, message)
 
         try:
-            plan.sections[spec.json_header] = spec.parser(html_content, ctx, warn)
+            data = spec.parser(html_content, ctx, warn)
+            plan.sections[spec.json_header] = data
             plan.sources[spec.json_header] = source or "(absent -> disabled)"
+            if spec.parser is parse_security_controls:
+                plan.sources[spec.json_header] += (
+                    " (NEW controls)" if data.get("is_new") else " (OLD controls)"
+                )
         except Exception as exc:  # noqa: BLE001 - reported per section
             plan.errors[spec.json_header] = f"{type(exc).__name__}: {exc}"
 

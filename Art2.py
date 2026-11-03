@@ -11,7 +11,9 @@ header_first_page             -> header_first_page
 header_revision_second_page   -> header_revision_second_page
 header_reviewer_second_page   -> header_reviewer_second_page
 header_1 / 1_1 / 1_2 / 1_3 / 1_4 / 1_5 -> same names
-header_2 / header_2_1         -> same names
+header_2 / header_2_1         -> same names (text under the diagram in
+                                 header_2_1 -> header_2.description, see
+                                 merge_architecture_summary)
 header_3                      -> header_3
 header_3_2 (testing overview) -> header_3_1   (events table)
 header_3_4 (security controls)-> header_3_2   (old or new controls template,
@@ -43,6 +45,11 @@ from urllib.parse import unquote, urlparse
 from bs4 import BeautifulSoup
 
 from app.constants import CONTROLS_DICT, CONTROLS_DICT_OLD
+from app.services.sar_header_2_ingestion import (
+    DEFAULT_HEADER_2_DESCRIPTION,
+    DESCRIPTION_CUSTOM,
+    classify_header_2_description,
+)
 from app.services.ingestion_service import (
     NEW_CATEGORY_TITLE_MAPPING,
     OLD_CATEGORY_TITLE_MAPPING,
@@ -698,6 +705,64 @@ def parse_header_2_1(html_content, ctx, warn):
     return {"image_links": image_links}
 
 
+def extract_architecture_summary(html_content):
+    """
+    Text written under the diagram image(s) in legacy header_2_1 HTML, e.g.
+    ``<img ...><br>Figure 1 depicts ...``. Returns "" when there is none.
+    """
+    soup = make_soup(html_content)
+    container = soup.select_one("#header_2_1_img_show")
+    if container is None:
+        container = soup.select_one("#header_2_1") or soup
+    container = copy.copy(container)
+    for node in container.find_all(["img", "script", "style"]):
+        node.decompose()
+    return "\n\n".join(element_paragraphs(container))
+
+
+def merge_architecture_summary(plan, legacy_rows):
+    """
+    header_2.description now holds the architecture summary (rendered under
+    the diagram in header_2_1 when it is not the default sentence):
+
+      header_2_1 has summary text      -> description = that text
+      no summary, header_2 text custom -> kept (will now render under the
+                                          diagram; warned)
+      no summary, header_2 empty/default -> unchanged
+    """
+    summary = extract_architecture_summary(legacy_rows.get("header_2_1") or "")
+    header_2 = plan.sections.get("header_2")
+
+    if summary:
+        if classify_header_2_description(summary) != DESCRIPTION_CUSTOM:
+            return  # default sentence under the diagram: nothing to carry over
+        current = (header_2 or {}).get("description") or ""
+        if classify_header_2_description(current) == DESCRIPTION_CUSTOM and (
+            normalize_key(current) != normalize_key(summary)
+        ):
+            plan.warn(
+                "header_2",
+                "Legacy header_2 had custom text and header_2_1 had a "
+                "summary; the header_2_1 summary was kept. Dropped header_2 "
+                "text: " + current[:120],
+            )
+        plan.sections["header_2"] = {"description": summary}
+        plan.sources["header_2"] = (
+            plan.sources.get("header_2", "header_2") + " + header_2_1 summary"
+        )
+        return
+
+    if header_2 and classify_header_2_description(
+        header_2.get("description")
+    ) == DESCRIPTION_CUSTOM:
+        plan.warn(
+            "header_2",
+            "Custom header_2 text will now be rendered under the architecture "
+            "diagram (header_2_1). Default text is: "
+            + DEFAULT_HEADER_2_DESCRIPTION[:60] + "...",
+        )
+
+
 def _find_table_with_header(soup, *needles):
     for table in soup.find_all("table"):
         header_text = normalize_key(
@@ -1321,6 +1386,9 @@ def build_migration_plan(legacy_rows, ctx):
 
         if source:
             consumed.add(source)
+
+    if "header_2" not in plan.errors:
+        merge_architecture_summary(plan, legacy_rows)
 
     plan.unmapped_legacy_headers = sorted(
         header for header, html in legacy_rows.items()

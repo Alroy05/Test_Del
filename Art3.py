@@ -15,6 +15,9 @@ python manage.py migrate_sar_html_to_json --all --dry-run --output-dir /tmp/sar_
 # (default: the GSSR platform user) for rows without a resolvable author.
 python manage.py migrate_sar_html_to_json --all --user-email admin@example.com
 
+# Requests with no SAR HTML but with controls in HighLevelData are included:
+# the JSON SAR is initialized and header_3_2 is migrated from HighLevelData.
+
 # Re-migrate one SAR, overwrite its JSON (old JSON archived), and re-render HTML
 python manage.py migrate_sar_html_to_json --sgp-id SGP-1234 --force --refresh-html
 """
@@ -30,6 +33,7 @@ from django.db.models.functions import Concat
 
 from app.models import RequestorTeam, SarTemplateData, SarTemplateJsonData
 from app.models.default_template_data import DefaultTemplateData
+from app.models.high_level_data import HighLevelData
 from app.models.sar_json_history_data import SarJsonHistoryData
 from app.models.sar_template_data_history import SarTemplateDataHistory
 from app.services.initialize_form_service import initialize_sar_sections
@@ -68,8 +72,9 @@ class Command(BaseCommand):
             "--all",
             action="store_true",
             help=(
-                "Every request with active HTML SAR rows. Requests that already "
-                "have active JSON rows are skipped unless --force is given."
+                "Every request with active HTML SAR rows or active HighLevelData "
+                "(controls) rows. Requests that already have active JSON rows "
+                "are skipped unless --force is given."
             ),
         )
 
@@ -218,9 +223,26 @@ class Command(BaseCommand):
     def _process_request(self, request_details, user, options, output_dir, prefix):
         legacy_rows, legacy_authors = self._latest_legacy_rows(request_details)
 
+        # Controls HTML missing from SarTemplateData -> take it from
+        # HighLevelData (the only table that has it for some requests).
+        controls_from_high_level = False
+        if not legacy_rows.get("header_3_4"):
+            high_level_html = self._latest_high_level_html(request_details)
+            if high_level_html:
+                legacy_rows["header_3_4"] = high_level_html
+                controls_from_high_level = True
+
         if not legacy_rows:
-            self.stdout.write(self.style.WARNING(f"{prefix}: no active HTML rows, skipped."))
+            self.stdout.write(
+                self.style.WARNING(
+                    f"{prefix}: no active HTML rows or HighLevelData, skipped."
+                )
+            )
             return {"status": "skipped", "warnings": False}
+
+        # No SAR HTML at all, only HighLevelData: the JSON SAR is initialized
+        # with defaults and only the controls are migrated.
+        high_level_only = controls_from_high_level and set(legacy_rows) == {"header_3_4"}
 
         ctx = SarParseContext.from_request(
             request_details,
@@ -229,6 +251,18 @@ class Command(BaseCommand):
         )
         plan = build_migration_plan(legacy_rows, ctx)
         self._link_reviewer_ids(plan)
+
+        if controls_from_high_level and "header_3_2" in plan.sources:
+            plan.sources["header_3_2"] = plan.sources["header_3_2"].replace(
+                "header_3_4", "high_level_data", 1
+            )
+        if high_level_only:
+            # Everything except the controls comes from initialize_sar_sections
+            # (do not write "disabled" header_5 / addendum defaults over it).
+            for header_name in list(plan.sections):
+                if header_name != "header_3_2":
+                    plan.sections.pop(header_name)
+                    plan.sources.pop(header_name, None)
 
         # created_by per JSON section = author of the legacy HTML row it came
         # from; sections without a source row (defaults, disabled header_5 /
@@ -284,7 +318,14 @@ class Command(BaseCommand):
             )
 
             defaults_created = []
-            if not options["skip_defaults"]:
+            if high_level_only and options["skip_defaults"]:
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"{prefix}: only HighLevelData found; initializing the "
+                        "JSON SAR despite --skip-defaults."
+                    )
+                )
+            if high_level_only or not options["skip_defaults"]:
                 before = set(self._active_json_headers(request_details))
                 initialize_sar_sections(request_details, sar_author)
                 defaults_created = sorted(
@@ -339,9 +380,19 @@ class Command(BaseCommand):
                 .values_list("request", flat=True)
                 .distinct()
             )
+            high_level_request_ids = (
+                HighLevelData.objects.filter(is_active=1)
+                .exclude(header_data__isnull=True)
+                .exclude(header_data="")
+                .values_list("request", flat=True)
+                .distinct()
+            )
             queryset = RequestorTeam.objects.filter(
                 **{f"{target_field}__in": html_request_ids}
+            ) | RequestorTeam.objects.filter(
+                **{f"{target_field}__in": high_level_request_ids}
             )
+            queryset = queryset.distinct()
 
             if not options["force"]:
                 json_target = SarTemplateJsonData._meta.get_field(
@@ -396,6 +447,17 @@ class Command(BaseCommand):
             if user_id in users
         }
         return latest, authors
+
+    def _latest_high_level_html(self, request_details):
+        """Controls HTML from the latest active HighLevelData row, or ""."""
+        return (
+            HighLevelData.objects.filter(request=request_details, is_active=1)
+            .exclude(header_data__isnull=True)
+            .exclude(header_data="")
+            .order_by("-created_date", "-id")
+            .values_list("header_data", flat=True)
+            .first()
+        ) or ""
 
     def _active_json_headers(self, request_details):
         return SarTemplateJsonData.objects.filter(

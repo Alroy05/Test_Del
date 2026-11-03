@@ -18,10 +18,8 @@ summary. What is rendered depends on its content:
             <br><span class="architecture_summary">Figure 1 depicts ...</span>
         </div>
 
-Because header_2_1's HTML now depends on header_2's JSON, header_2_1 must
-be re-rendered whenever header_2 changes: use mark_header_2_1_for_refresh()
-when header_2 is saved, and/or add_dependent_headers() when picking the
-headers to refresh.
+Because header_2_1's HTML now depends on header_2's JSON, call
+mark_header_2_1_for_refresh() wherever header_2 is saved.
 
 Place this module at app/services/sar_header_2_ingestion.py and register
 the two functions in INGESTION_FUNCTION_MAP:
@@ -52,67 +50,40 @@ DEFAULT_HEADER_2_DESCRIPTION = (
     "infrastructure capabilities."
 )
 
-DESCRIPTION_EMPTY = "empty"
-DESCRIPTION_DEFAULT = "default"
-DESCRIPTION_CUSTOM = "custom"
-
 SUMMARY_CLASS = "architecture_summary"
 
-# Headers whose HTML depends on another header's JSON.
-DEPENDENT_HEADERS = {"header_2": ("header_2_1",)}
+
+def is_custom_header_2_description(description):
+    """
+    True when the description is neither empty nor the default sentence.
+    Only letters/digits are compared, so ' vs ’, "-" vs "–" and spacing do
+    not matter. Also used by the HTML -> JSON migration.
+    """
+    text = re.sub(r"[^a-z0-9]+", "", str(description or "").lower())
+    default = re.sub(r"[^a-z0-9]+", "", DEFAULT_HEADER_2_DESCRIPTION.lower())
+    return bool(text) and text != default
 
 
-def _alnum(value):
-    # Letters/digits only, so ' vs ’, "-" vs "–" and spacing do not matter.
-    return re.sub(r"[^a-z0-9]+", "", str(value or "").lower())
+def _rewrite_html(html_content, edit):
+    """Decode (if HTML-escaped), let ``edit(soup)`` change it, re-encode."""
+    was_html_encoded = "&lt;" in html_content and "&gt;" in html_content
+    soup = BeautifulSoup(
+        unescape(html_content) if was_html_encoded else html_content,
+        "html.parser",
+    )
+    edit(soup)
+    rendered_html = str(soup)
+    return escape(rendered_html, quote=False) if was_html_encoded else rendered_html
 
 
-def classify_header_2_description(description):
-    """Return DESCRIPTION_EMPTY, DESCRIPTION_DEFAULT or DESCRIPTION_CUSTOM."""
-    text = str(description or "").strip()
-    if not text:
-        return DESCRIPTION_EMPTY
-    if _alnum(text) == _alnum(DEFAULT_HEADER_2_DESCRIPTION):
-        return DESCRIPTION_DEFAULT
-    return DESCRIPTION_CUSTOM
-
-
-def architecture_summary_from_json(header_2_json):
-    """The text to show under the diagram, or "" when there is none."""
-    description = str((header_2_json or {}).get("description") or "").strip()
-    if classify_header_2_description(description) == DESCRIPTION_CUSTOM:
-        return description
-    return ""
-
-
-def _paragraphs(text):
-    return [part.strip() for part in str(text or "").split("\n\n") if part.strip()]
-
-
-def _append_paragraphs(soup, element, paragraphs):
+def _append_paragraphs(soup, element, text):
+    """"\\n\\n"-separated paragraphs, joined with <br><br>."""
+    paragraphs = [part.strip() for part in str(text or "").split("\n\n") if part.strip()]
     for index, paragraph in enumerate(paragraphs):
         element.append(paragraph)
         if index < len(paragraphs) - 1:
             element.append(soup.new_tag("br"))
             element.append(soup.new_tag("br"))
-
-
-def _decode(html_content):
-    was_html_encoded = "&lt;" in html_content and "&gt;" in html_content
-    decoded = unescape(html_content) if was_html_encoded else html_content
-    return BeautifulSoup(decoded, "html.parser"), was_html_encoded
-
-
-def _encode(soup, was_html_encoded):
-    rendered_html = str(soup)
-    if was_html_encoded:
-        return escape(rendered_html, quote=False)
-    return rendered_html
-
-
-# ---------------------------------------------------------------------------
-# header_2
-# ---------------------------------------------------------------------------
 
 
 def ingest_header_2_json(html_content: str, json_data: dict, request_obj) -> str:
@@ -123,112 +94,75 @@ def ingest_header_2_json(html_content: str, json_data: dict, request_obj) -> str
         raise ValueError("json_data must be a dictionary.")
 
     description = str(json_data.get("description") or "").strip()
-    kind = classify_header_2_description(description)
 
-    if kind == DESCRIPTION_CUSTOM:
-        # The custom text is the architecture summary: it is rendered under
-        # the diagram in header_2_1. header_2 keeps the standard sentence.
+    # Custom text is the architecture summary: it is rendered under the
+    # diagram in header_2_1, and header_2 keeps the standard sentence.
+    # Empty / default text is rendered as before.
+    if is_custom_header_2_description(description):
         description = DEFAULT_HEADER_2_DESCRIPTION
 
-    soup, was_html_encoded = _decode(html_content)
+    def edit(soup):
+        description_element = soup.find("h5")
+        if description_element is None:
+            raise ValueError("Could not find the header_2 description element: h5")
+        description_element.clear()
+        _append_paragraphs(soup, description_element, description)
 
-    description_element = soup.find("h5")
-    if description_element is None:
-        raise ValueError("Could not find the header_2 description element: h5")
-
-    # Same as before for empty / default text.
-    description_element.clear()
-    _append_paragraphs(soup, description_element, _paragraphs(description))
-
-    return _encode(soup, was_html_encoded)
-
-
-# ---------------------------------------------------------------------------
-# header_2_1
-# ---------------------------------------------------------------------------
-
-
-def apply_architecture_summary(html_content: str, summary: str) -> str:
-    """
-    Put ``summary`` after the diagram image(s) of rendered header_2_1 HTML.
-
-    Any summary added by an earlier render is removed first, so this is safe
-    to run on HTML that was already rendered. An empty summary just removes
-    it.
-    """
-    if not isinstance(html_content, str) or not html_content.strip():
-        return html_content
-
-    soup, was_html_encoded = _decode(html_content)
-    container = soup.select_one("#header_2_1_img_show")
-    if container is None:
-        container = soup.select_one("#header_2_1") or soup
-
-    for old in container.select(f"span.{SUMMARY_CLASS}"):
-        previous = old.find_previous_sibling()
-        if previous is not None and previous.name == "br":
-            previous.decompose()
-        old.decompose()
-
-    paragraphs = _paragraphs(summary)
-    if paragraphs:
-        container.append(soup.new_tag("br"))
-        span = soup.new_tag("span", attrs={"class": SUMMARY_CLASS})
-        _append_paragraphs(soup, span, paragraphs)
-        container.append(span)
-
-    return _encode(soup, was_html_encoded)
-
-
-def get_active_header_2_json(request_obj):
-    from app.models import SarTemplateJsonData
-
-    row = (
-        SarTemplateJsonData.objects.filter(
-            request=request_obj, header_name="header_2", is_active=1
-        )
-        .order_by("-created_date", "-id")
-        .only("json_data")
-        .first()
-    )
-    return (row.json_data or {}) if row else {}
+    return _rewrite_html(html_content, edit)
 
 
 def with_architecture_summary(ingest_header_2_1):
     """
-    Wrap the existing header_2_1 ingestion function so that the header_2
-    architecture summary (custom text only) is added under the diagram.
+    Wrap the existing header_2_1 ingestion function: after it renders, the
+    custom header_2 description (if any) is put after the diagram image(s).
+    A summary from an earlier render is replaced, never duplicated.
     """
 
     @functools.wraps(ingest_header_2_1)
     def wrapper(html_content, json_data, request_obj, *args, **kwargs):
         rendered = ingest_header_2_1(html_content, json_data, request_obj, *args, **kwargs)
-        summary = architecture_summary_from_json(get_active_header_2_json(request_obj))
-        return apply_architecture_summary(rendered, summary)
+        if not isinstance(rendered, str) or not rendered.strip():
+            return rendered
+
+        from app.models import SarTemplateJsonData
+
+        header_2 = (
+            SarTemplateJsonData.objects.filter(
+                request=request_obj, header_name="header_2", is_active=1
+            )
+            .order_by("-created_date", "-id")
+            .values_list("json_data", flat=True)
+            .first()
+        ) or {}
+        summary = str(header_2.get("description") or "").strip()
+        if not is_custom_header_2_description(summary):
+            summary = ""
+
+        def edit(soup):
+            container = (
+                soup.select_one("#header_2_1_img_show")
+                or soup.select_one("#header_2_1")
+                or soup
+            )
+            for old in container.select(f"span.{SUMMARY_CLASS}"):
+                previous = old.find_previous_sibling()
+                if previous is not None and previous.name == "br":
+                    previous.decompose()
+                old.decompose()
+
+            if summary:
+                span = soup.new_tag("span", attrs={"class": SUMMARY_CLASS})
+                _append_paragraphs(soup, span, summary)
+                container.append(soup.new_tag("br"))
+                container.append(span)
+
+        return _rewrite_html(rendered, edit)
 
     return wrapper
 
 
-# ---------------------------------------------------------------------------
-# Refresh wiring
-# ---------------------------------------------------------------------------
-
-
-def add_dependent_headers(header_names):
-    """
-    ["header_2"] -> ["header_2", "header_2_1"]. Use it where the list of
-    headers to re-render is built (e.g. in refresh_sar_html).
-    """
-    result = list(header_names or [])
-    for header_name in list(result):
-        for dependent in DEPENDENT_HEADERS.get(header_name, ()):
-            if dependent not in result:
-                result.append(dependent)
-    return result
-
-
 def mark_header_2_1_for_refresh(request_obj):
-    """Call after header_2's JSON is saved / marked needs_refresh."""
+    """Call after header_2's JSON is saved, so header_2_1 is re-rendered."""
     from app.models import SarTemplateJsonData
 
     return SarTemplateJsonData.objects.filter(

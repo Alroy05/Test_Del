@@ -47,8 +47,7 @@ from bs4 import BeautifulSoup
 from app.constants import CONTROLS_DICT, CONTROLS_DICT_OLD
 from app.services.sar_header_2_ingestion import (
     DEFAULT_HEADER_2_DESCRIPTION,
-    DESCRIPTION_CUSTOM,
-    classify_header_2_description,
+    is_custom_header_2_description,
 )
 from app.services.ingestion_service import (
     NEW_CATEGORY_TITLE_MAPPING,
@@ -734,10 +733,10 @@ def merge_architecture_summary(plan, legacy_rows):
     header_2 = plan.sections.get("header_2")
 
     if summary:
-        if classify_header_2_description(summary) != DESCRIPTION_CUSTOM:
+        if not is_custom_header_2_description(summary):
             return  # default sentence under the diagram: nothing to carry over
         current = (header_2 or {}).get("description") or ""
-        if classify_header_2_description(current) == DESCRIPTION_CUSTOM and (
+        if is_custom_header_2_description(current) and (
             normalize_key(current) != normalize_key(summary)
         ):
             plan.warn(
@@ -752,9 +751,7 @@ def merge_architecture_summary(plan, legacy_rows):
         )
         return
 
-    if header_2 and classify_header_2_description(
-        header_2.get("description")
-    ) == DESCRIPTION_CUSTOM:
+    if header_2 and is_custom_header_2_description(header_2.get("description")):
         plan.warn(
             "header_2",
             "Custom header_2 text will now be rendered under the architecture "

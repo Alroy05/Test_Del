@@ -26,6 +26,8 @@ interface DataTableProps {
     dropdownRef: RefObject<HTMLDivElement | null>;
     setError: (error: string) => void;
     hidePagination?: boolean;
+    /** Rows scroll inside a fixed-height area and the header row stays visible */
+    stickyHeader?: boolean;
     sortColumn?: string;
     sortOrder?: "asc" | "desc";
     onSort?: (column: string) => void;
@@ -50,6 +52,7 @@ export default function DataTable({
     dropdownRef,
     setError,
     hidePagination,
+    stickyHeader,
     sortColumn,
     sortOrder,
     onSort,
@@ -82,7 +85,7 @@ export default function DataTable({
 
     return (
         <div className="flex flex-col flex-1 bg-white dark:bg-[#121831] border border-[#E6E9F2] dark:border-[#232B45] shadow-sm overflow-hidden rounded-b-2xl">
-            <div className="overflow-x-auto">
+            <div className={`overflow-x-auto ${stickyHeader ? "max-h-[560px] overflow-y-auto" : ""}`}>
                 <table className="w-full table-fixed border-collapse">
                     <colgroup>
                         {columns.map((col, index) => (
@@ -97,7 +100,7 @@ export default function DataTable({
                             {columns.map((col, index) => (
                                 <th
                                     key={getColumnKey(col, index)}
-                                    className={`px-[14px] py-[11px] text-left font-semibold tracking-normal text-[#1E3A8A] dark:text-[#C9D7FF] text-[12.5px] 2xl:text-xl ${col.sortable ? 'cursor-pointer hover:bg-blue-100/50 dark:hover:bg-slate-700' : ''}`}
+                                    className={`px-[14px] py-[11px] text-left font-semibold tracking-normal text-[#1E3A8A] dark:text-[#C9D7FF] text-[12.5px] 2xl:text-xl shadow-[inset_0_-1px_0_#D5DFF3] dark:shadow-[inset_0_-1px_0_#2B3760] ${col.sortable ? 'cursor-pointer hover:bg-blue-100/50 dark:hover:bg-slate-700' : ''}`}
                                     onClick={() => col.sortable && onSort && onSort(col.key)}
                                 >
                                     <div className="flex items-center gap-1.5">

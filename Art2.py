@@ -44,30 +44,13 @@ const TYPE_PILLS: Record<string, [React.ElementType, string]> = {
 const DEFAULT_TYPE_PILL: [React.ElementType, string] =
   [Tag, "text-[#475569] bg-[#475569]/11 dark:text-[#A3AEC8] dark:bg-[#A3AEC8]/14"];
 
-/* Restyles the shared DataTable for this page only (the component itself is untouched) */
-const tableSkin = [
-  // frame: the card around it supplies the border and radius
-  "[&>div]:border-0 [&>div]:shadow-none [&>div]:bg-transparent [&>div]:rounded-b-[13px]",
-  "[&_table]:min-w-[1080px]",
-  // header
-  "[&_th]:px-[14px] [&_th]:py-[11px] [&_th]:font-semibold [&_th]:tracking-normal max-2xl:[&_th]:text-[12.5px]",
-  "[&_th]:text-[#1E3A8A] dark:[&_th]:text-[#C9D7FF]",
-  // rows
-  "[&_td]:px-[14px] [&_td]:py-[12px] [&_td]:leading-normal max-2xl:[&_td]:text-[13px]",
-  "[&_td]:text-[#0F1B3D] dark:[&_td]:text-[#E6EAF5]",
-  "[&_tbody_tr]:bg-transparent [&_tbody_tr]:border-[#E6E9F2] dark:[&_tbody_tr]:border-[#232B45]",
-  "[&_tbody_tr:hover]:bg-[#F3F5FB] dark:[&_tbody_tr:hover]:bg-[#182040]",
-  // pagination bar
-  "[&>div>div:last-child]:bg-transparent [&>div>div:last-child]:border-[#E6E9F2] dark:[&>div>div:last-child]:border-[#232B45]",
-].join(" ");
-
 /* Date on the first line, time below it; falls back to the plain formatted value */
 const DateCell = ({ value }: { value: any }) => {
   const formatted: any = formatDateTime(value);
   const match = typeof formatted === "string" ? formatted.match(/^(.+?)[,\s]+(\d{1,2}:\d{2}.*)$/) : null;
 
   return (
-    <span className={`block whitespace-nowrap text-[0.96em] ${mutedCls}`}>
+    <span className={`block text-[0.96em] ${mutedCls}`}>
       {match ? (
         <>
           <b className="block font-semibold text-[#0F1B3D] dark:text-[#E6EAF5]">{match[1]}</b>
@@ -378,13 +361,13 @@ const RequestorArtifactory = () => {
       key: "created_date",
       label: "Date",
       sortable: true,
-      width: "w-[13%]",
+      width: "w-30",
       render: (value: any) => <DateCell value={value} />,
     },
     {
       key: "created_by_name",
       label: "Name",
-      width: "w-[12%]",
+      width: "w-36",
       render: (value: any) => (
         <span className="font-semibold">{value ?? "-"}</span>
       ),
@@ -392,18 +375,18 @@ const RequestorArtifactory = () => {
     {
       key: "response_for",
       label: "Response For",
-      width: "w-[15%]",
+      width: "w-40",
     },
     {
       key: "new_value_str",
       label: "Update",
-      width: "w-[24%]",
+      width: "w-94",
       render: (_: any, row: any) => <UpdateCell row={row} requestId={requestId} />,
     },
     {
       key: "old_value_str",
       label: "Old Data",
-      width: "w-[13%]",
+      width: "w-40",
       render: (value: any, row: any) =>
         row.event == 10 ? (
           <div className={mutedCls}>
@@ -431,14 +414,14 @@ const RequestorArtifactory = () => {
     {
       key: "event_string",
       label: "Type",
-      width: "w-[12%]",
+      width: "w-36",
       render: (value: any) => {
         if (value == null || value === "") return <span className={faintCls}>-</span>;
         const [Icon, pillCls] = TYPE_PILLS[value] ?? DEFAULT_TYPE_PILL;
         return (
-          <span className={`inline-flex items-center gap-1.5 max-w-full px-[9px] py-[3px] rounded-full text-[0.885em] font-semibold ${pillCls}`}>
-            <Icon className="size-[0.95em] shrink-0" />
-            <span className="truncate">{value}</span>
+          <span className={`inline-flex items-start gap-1.5 max-w-full px-[9px] py-[3px] rounded-[1.1em] text-[0.885em] leading-snug font-semibold ${pillCls}`}>
+            <Icon className="size-[0.95em] shrink-0 mt-[0.2em]" />
+            <span className="min-w-0 break-words">{value}</span>
           </span>
         );
       },
@@ -446,7 +429,7 @@ const RequestorArtifactory = () => {
     {
       key: "user_role",
       label: "User Role",
-      width: "w-[11%]",
+      width: "w-32",
       render: (value: any) => (
         <span className={`text-[0.96em] ${mutedCls}`}>{value ?? "-"}</span>
       ),
@@ -474,8 +457,9 @@ const RequestorArtifactory = () => {
             solutionType={allData?.solutionType ?? "—"}
           />
 
-          <section className="bg-white dark:bg-[#121831] border border-[#E6E9F2] dark:border-[#232B45] rounded-[14px] text-[#0F1B3D] dark:text-[#E6EAF5]">
-            <div className="flex flex-wrap items-center gap-[10px] px-[18px] py-[14px] border-b border-[#E6E9F2] dark:border-[#232B45]">
+          <section className="text-[#0F1B3D] dark:text-[#E6EAF5]">
+            {/* the DataTable below draws the rest of the card frame */}
+            <div className="flex flex-wrap items-center gap-[10px] px-[18px] py-[14px] bg-white dark:bg-[#121831] border border-b-0 border-[#E6E9F2] dark:border-[#232B45] rounded-t-2xl">
               {/* <div className="w-full max-w-sm space-y-1.5">
                 <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-200">
                   Select Log Type
@@ -516,25 +500,23 @@ const RequestorArtifactory = () => {
               </button>
             </div>
 
-            <div className={tableSkin}>
-              <DataTable
-                columns={columns}
-                data={paginatedData}
-                currentPage={currentPage}
-                setCurrentPage={setCurrentPage}
-                pageSize={pageSize}
-                setPageSize={setPageSize}
-                totalPages={totalPages}
-                totalRecords={totalRecords}
-                isDropdownOpen={isPageDropdownOpen}
-                setIsDropdownOpen={setIsPageDropdownOpen}
-                dropdownRef={dropdownRef}
-                setError={setTableError}
-                sortColumn={sortColumn}
-                sortOrder={sortOrder}
-                onSort={handleSort}
-              />
-            </div>
+            <DataTable
+              columns={columns}
+              data={paginatedData}
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+              pageSize={pageSize}
+              setPageSize={setPageSize}
+              totalPages={totalPages}
+              totalRecords={totalRecords}
+              isDropdownOpen={isPageDropdownOpen}
+              setIsDropdownOpen={setIsPageDropdownOpen}
+              dropdownRef={dropdownRef}
+              setError={setTableError}
+              sortColumn={sortColumn}
+              sortOrder={sortOrder}
+              onSort={handleSort}
+            />
           </section>
         </div>
       </div>

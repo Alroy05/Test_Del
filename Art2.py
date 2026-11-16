@@ -3,14 +3,14 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import ReactSelect from "react-select";
+import ReactSelect, { components } from "react-select";
 import DOMPurify from 'dompurify';
 import DataTable from "@/components/DataTable";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import { callBackend, callBackendFormData, forceDownload, downloadFile, downloadPdfFile, formatDateTime, actionBtn } from "@/lib/helpers";
 import { customStyles, darkModeStyles } from "@/lib/styles";
 import { toast } from "react-hot-toast";
-import { ChevronDown, ChevronUp, Download, FileText, Fingerprint, History, LucideRotateCcw, Mail, MessageSquare, RotateCcwClock, RotateCcwSquare, Signal, Sparkles, Tag, UserPlus } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Download, FileText, Filter, Fingerprint, History, LucideRotateCcw, Mail, MessageSquare, RotateCcwClock, RotateCcwSquare, Signal, Sparkles, Tag, UserPlus } from "lucide-react";
 import TitleBar from "@/components/TitleBar";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { Rotate90DegreesCcwRounded } from "@mui/icons-material";
@@ -44,22 +44,59 @@ const TYPE_PILLS: Record<string, [React.ElementType, string]> = {
 const DEFAULT_TYPE_PILL: [React.ElementType, string] =
   [Tag, "text-[#475569] bg-[#475569]/11 dark:text-[#A3AEC8] dark:bg-[#A3AEC8]/14"];
 
-/* Restyles the shared DataTable for this page only (the component itself is untouched) */
-const tableSkin = [
-  // frame: the card around it supplies the border and radius
-  "[&>div]:border-0 [&>div]:shadow-none [&>div]:bg-transparent [&>div]:rounded-b-[13px]",
-  "[&_table]:min-w-[1080px]",
-  // header
-  "[&_th]:px-[14px] [&_th]:py-[11px] [&_th]:font-semibold [&_th]:tracking-normal max-2xl:[&_th]:text-[12.5px]",
-  "[&_th]:text-[#1E3A8A] dark:[&_th]:text-[#C9D7FF]",
-  // rows
-  "[&_td]:px-[14px] [&_td]:py-[12px] [&_td]:leading-normal max-2xl:[&_td]:text-[13px]",
-  "[&_td]:text-[#0F1B3D] dark:[&_td]:text-[#E6EAF5]",
-  "[&_tbody_tr]:bg-transparent [&_tbody_tr]:border-[#E6E9F2] dark:[&_tbody_tr]:border-[#232B45]",
-  "[&_tbody_tr:hover]:bg-[#F3F5FB] dark:[&_tbody_tr:hover]:bg-[#182040]",
-  // pagination bar
-  "[&>div>div:last-child]:bg-transparent [&>div>div:last-child]:border-[#E6E9F2] dark:[&>div>div:last-child]:border-[#232B45]",
-].join(" ");
+/* Log type filter: react-select styled as the design's pill dropdown */
+const logTypeSelectStyles = (dark: boolean): any => {
+  const c = dark
+    ? { surface: "#121831", hover: "#182040", border: "#232B45", text: "#E6EAF5", faint: "#6F7A96", brand: "#7DA2FF", soft: "#1B2547" }
+    : { surface: "#FFFFFF", hover: "#F3F5FB", border: "#E6E9F2", text: "#0F1B3D", faint: "#8A94AD", brand: "#1E3A8A", soft: "#E8EEFF" };
+  const indicator = { color: c.faint, cursor: "pointer", "&:hover": { color: c.text }, svg: { width: 14, height: 14 } };
+
+  return {
+    control: (base: any) => ({
+      ...base, width: 200, height: 34, minHeight: 34, flexWrap: "nowrap", cursor: "pointer",
+      border: 0, borderRadius: 999, boxShadow: "none", background: "transparent", fontSize: 13, fontWeight: 600,
+    }),
+    valueContainer: (base: any) => ({ ...base, flexWrap: "nowrap", padding: "0 4px 0 8px" }),
+    placeholder: (base: any) => ({
+      ...base, margin: 0, color: c.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+    }),
+    input: (base: any) => ({ ...base, margin: 0, padding: 0, color: c.text }),
+    indicatorSeparator: () => ({ display: "none" }),
+    clearIndicator: (base: any) => ({ ...base, ...indicator, padding: "0 2px" }),
+    dropdownIndicator: (base: any, state: any) => ({
+      ...base, ...indicator, padding: "0 12px 0 4px", transition: "transform 0.2s ease",
+      transform: state.selectProps.menuIsOpen ? "rotate(180deg)" : undefined,
+    }),
+    menu: (base: any) => ({
+      ...base, left: "auto", right: 0, width: "max-content", minWidth: "100%", marginTop: 8, padding: 5, zIndex: 200,
+      background: c.surface, border: `1px solid ${c.border}`, borderRadius: 12,
+      boxShadow: "0 18px 40px -16px rgba(15, 27, 61, 0.45)",
+    }),
+    menuList: (base: any) => ({ ...base, padding: 0, maxHeight: 280 }),
+    option: (base: any, state: any) => ({
+      ...base, display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 8,
+      fontSize: 13, cursor: "pointer", fontWeight: state.isSelected ? 600 : 500,
+      color: state.isSelected ? c.brand : c.text,
+      background: state.isSelected ? c.soft : state.isFocused ? c.hover : "transparent",
+      "&:active": { background: state.isSelected ? c.soft : c.hover },
+    }),
+    noOptionsMessage: (base: any) => ({ ...base, fontSize: 13, color: c.faint }),
+  };
+};
+
+const LogTypeControl = ({ children, ...props }: any) => (
+  <components.Control {...props}>
+    <Filter className="ml-3 size-3 shrink-0 text-[#1E3A8A] dark:text-[#7DA2FF]" />
+    {children}
+  </components.Control>
+);
+
+const LogTypeOption = ({ children, ...props }: any) => (
+  <components.Option {...props}>
+    <span className="flex-1 min-w-0">{children}</span>
+    {props.isSelected && <Check className="size-3 shrink-0" />}
+  </components.Option>
+);
 
 /* Date on the first line, time below it; falls back to the plain formatted value */
 const DateCell = ({ value }: { value: any }) => {
@@ -67,7 +104,7 @@ const DateCell = ({ value }: { value: any }) => {
   const match = typeof formatted === "string" ? formatted.match(/^(.+?)[,\s]+(\d{1,2}:\d{2}.*)$/) : null;
 
   return (
-    <span className={`block whitespace-nowrap text-[0.96em] ${mutedCls}`}>
+    <span className={`block text-[0.96em] ${mutedCls}`}>
       {match ? (
         <>
           <b className="block font-semibold text-[#0F1B3D] dark:text-[#E6EAF5]">{match[1]}</b>
@@ -270,6 +307,7 @@ const RequestorArtifactory = () => {
     Object.entries(dropdown).map(([key, value]) => ({ key, value }));
 
   const [logTypeOptions, setLogTypeOptions] = useState<any>();
+  const [selectedLogTypes, setSelectedLogTypes] = useState<any[]>([]);
   const [allData, setAllData] = useState<any>();
   const [tableData, setTableData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -378,13 +416,13 @@ const RequestorArtifactory = () => {
       key: "created_date",
       label: "Date",
       sortable: true,
-      width: "w-[13%]",
+      width: "w-30",
       render: (value: any) => <DateCell value={value} />,
     },
     {
       key: "created_by_name",
       label: "Name",
-      width: "w-[12%]",
+      width: "w-36",
       render: (value: any) => (
         <span className="font-semibold">{value ?? "-"}</span>
       ),
@@ -392,18 +430,18 @@ const RequestorArtifactory = () => {
     {
       key: "response_for",
       label: "Response For",
-      width: "w-[15%]",
+      width: "w-40",
     },
     {
       key: "new_value_str",
       label: "Update",
-      width: "w-[24%]",
+      width: "w-94",
       render: (_: any, row: any) => <UpdateCell row={row} requestId={requestId} />,
     },
     {
       key: "old_value_str",
       label: "Old Data",
-      width: "w-[13%]",
+      width: "w-40",
       render: (value: any, row: any) =>
         row.event == 10 ? (
           <div className={mutedCls}>
@@ -431,14 +469,14 @@ const RequestorArtifactory = () => {
     {
       key: "event_string",
       label: "Type",
-      width: "w-[12%]",
+      width: "w-36",
       render: (value: any) => {
         if (value == null || value === "") return <span className={faintCls}>-</span>;
         const [Icon, pillCls] = TYPE_PILLS[value] ?? DEFAULT_TYPE_PILL;
         return (
-          <span className={`inline-flex items-center gap-1.5 max-w-full px-[9px] py-[3px] rounded-full text-[0.885em] font-semibold ${pillCls}`}>
-            <Icon className="size-[0.95em] shrink-0" />
-            <span className="truncate">{value}</span>
+          <span className={`inline-flex items-start gap-1.5 max-w-full px-[9px] py-[3px] rounded-[1.1em] text-[0.885em] leading-snug font-semibold ${pillCls}`}>
+            <Icon className="size-[0.95em] shrink-0 mt-[0.2em]" />
+            <span className="min-w-0 break-words">{value}</span>
           </span>
         );
       },
@@ -446,7 +484,7 @@ const RequestorArtifactory = () => {
     {
       key: "user_role",
       label: "User Role",
-      width: "w-[11%]",
+      width: "w-32",
       render: (value: any) => (
         <span className={`text-[0.96em] ${mutedCls}`}>{value ?? "-"}</span>
       ),
@@ -474,67 +512,76 @@ const RequestorArtifactory = () => {
             solutionType={allData?.solutionType ?? "—"}
           />
 
-          <section className="bg-white dark:bg-[#121831] border border-[#E6E9F2] dark:border-[#232B45] rounded-[14px] text-[#0F1B3D] dark:text-[#E6EAF5]">
-            <div className="flex flex-wrap items-center gap-[10px] px-[18px] py-[14px] border-b border-[#E6E9F2] dark:border-[#232B45]">
-              {/* <div className="w-full max-w-sm space-y-1.5">
-                <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-200">
-                  Select Log Type
-                </label>
-                <ReactSelect
-                  isMulti
-                  name="logType"
-                  placeholder="Select"
-                  onChange={selectedOption => filter(selectedOption)}
-                  options={logTypeOptions?.map((option: any) => ({
-                    value: option.key,
-                    label: option.value,
-                  }))}
-                  styles={isDarkMode ? darkModeStyles : customStyles}
-                  className="basic-multi-select"
-                  classNamePrefix="select"
-                />
-                <span className="text-[13px] text-slate-500">
-                  (Note: Date is in this format: yyyy-mm-dd)
-                </span>
-              </div> */}
+          <section className="text-[#0F1B3D] dark:text-[#E6EAF5]">
+            {/* the DataTable below draws the rest of the card frame */}
+            <div className="flex flex-wrap items-center gap-[10px] px-[18px] py-[14px] bg-white dark:bg-[#121831] border border-b-0 border-[#E6E9F2] dark:border-[#232B45] rounded-t-2xl">
               <span className="size-7 shrink-0 inline-flex items-center justify-center rounded-lg text-[#1E3A8A] bg-[#E8EEFF] dark:text-[#7DA2FF] dark:bg-[#1B2547]">
                 <History className="size-[14px]" />
               </span>
               <h2 className="font-jakarta-sans text-[15px] font-bold text-[#1E3A8A] dark:text-[#7DA2FF]">Activity Logs</h2>
               <span className="px-[9px] py-0.5 rounded-full text-[11.5px] font-bold text-[#1E3A8A] bg-[#E8EEFF] dark:text-[#7DA2FF] dark:bg-[#1B2547]">{totalRecords}</span>
-              <button
-                onClick={() => {
-                  const api = btoa(`/request/requestor-artifacts-export`);
-                  const url = `/download?api=${api}&data=${encodeURIComponent(JSON.stringify({ requestId: requestId }))}&xlName=${btoa(`Export details - ${allData?.solutionName}`)}&contentType=${btoa(`application/zip, application/octet-stream`)}&from=3`;
-                  window.open(url, '_blank', 'noopener,noreferrer');
-                }
-                }
-                // className="inline-flex items-center gap-2 px-5 py-3 bg-kpmg-blue hover:-translate-y-px transition-all text-white font-medium text-[13px] rounded-[10px] shadow-md whitespace-nowrap cursor-pointer border-none"
-                className="ml-auto inline-flex items-center gap-2 cursor-pointer px-[14px] py-2 rounded-[10px] text-[13px] font-semibold whitespace-nowrap border border-[#1E3A8A] bg-[#1E3A8A] text-white transition-[filter] hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3B6CF6] dark:border-[#7DA2FF] dark:bg-[#7DA2FF] dark:text-[#0B1020]">
-                <Download className="size-[14px]" />
-                Export Artifacts
-              </button>
+              <div className="ml-auto flex flex-wrap items-center gap-2">
+                <div className="flex items-center h-[38px] rounded-full border-[1.5px] border-transparent transition-shadow [background:linear-gradient(#fff,#fff)_padding-box,linear-gradient(90deg,#3B6CF6_0%,#8B5CF6_50%,#EC4899_100%)_border-box] dark:[background:linear-gradient(#121831,#121831)_padding-box,linear-gradient(90deg,#6B93FF_0%,#A78BFA_50%,#F472B6_100%)_border-box] shadow-[0_8px_22px_-14px_rgba(139,92,246,0.28)] focus-within:shadow-[0_0_0_4px_rgba(139,92,246,0.16),0_10px_28px_-12px_rgba(139,92,246,0.28)]">
+                  <ReactSelect
+                    isMulti
+                    name="logType"
+                    instanceId="log-type"
+                    aria-label="Log type"
+                    placeholder={
+                      !selectedLogTypes.length
+                        ? "All log types"
+                        : selectedLogTypes.length === 1
+                          ? selectedLogTypes[0].label
+                          : `${selectedLogTypes.length} log types`
+                    }
+                    value={selectedLogTypes}
+                    onChange={(selectedOption: any) => {
+                      setSelectedLogTypes(selectedOption ?? []);
+                      filter(selectedOption);
+                    }}
+                    options={logTypeOptions?.map((option: any) => ({
+                      value: option.key,
+                      label: option.value,
+                    }))}
+                    controlShouldRenderValue={false}
+                    hideSelectedOptions={false}
+                    styles={logTypeSelectStyles(isDarkMode)}
+                    components={{ Control: LogTypeControl, Option: LogTypeOption }}
+                  />
+                </div>
+                <button
+                  onClick={() => {
+                    const api = btoa(`/request/requestor-artifacts-export`);
+                    const url = `/download?api=${api}&data=${encodeURIComponent(JSON.stringify({ requestId: requestId }))}&xlName=${btoa(`Export details - ${allData?.solutionName}`)}&contentType=${btoa(`application/zip, application/octet-stream`)}&from=3`;
+                    window.open(url, '_blank', 'noopener,noreferrer');
+                  }
+                  }
+                  // className="inline-flex items-center gap-2 px-5 py-3 bg-kpmg-blue hover:-translate-y-px transition-all text-white font-medium text-[13px] rounded-[10px] shadow-md whitespace-nowrap cursor-pointer border-none"
+                  className="inline-flex items-center gap-2 cursor-pointer px-[14px] py-2 rounded-[10px] text-[13px] font-semibold whitespace-nowrap border border-[#1E3A8A] bg-[#1E3A8A] text-white transition-[filter] hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3B6CF6] dark:border-[#7DA2FF] dark:bg-[#7DA2FF] dark:text-[#0B1020]">
+                  <Download className="size-[14px]" />
+                  Export Artifacts
+                </button>
+              </div>
             </div>
 
-            <div className={tableSkin}>
-              <DataTable
-                columns={columns}
-                data={paginatedData}
-                currentPage={currentPage}
-                setCurrentPage={setCurrentPage}
-                pageSize={pageSize}
-                setPageSize={setPageSize}
-                totalPages={totalPages}
-                totalRecords={totalRecords}
-                isDropdownOpen={isPageDropdownOpen}
-                setIsDropdownOpen={setIsPageDropdownOpen}
-                dropdownRef={dropdownRef}
-                setError={setTableError}
-                sortColumn={sortColumn}
-                sortOrder={sortOrder}
-                onSort={handleSort}
-              />
-            </div>
+            <DataTable
+              columns={columns}
+              data={paginatedData}
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+              pageSize={pageSize}
+              setPageSize={setPageSize}
+              totalPages={totalPages}
+              totalRecords={totalRecords}
+              isDropdownOpen={isPageDropdownOpen}
+              setIsDropdownOpen={setIsPageDropdownOpen}
+              dropdownRef={dropdownRef}
+              setError={setTableError}
+              sortColumn={sortColumn}
+              sortOrder={sortOrder}
+              onSort={handleSort}
+              stickyHeader
+            />
           </section>
         </div>
       </div>

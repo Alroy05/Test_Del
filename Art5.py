@@ -26,6 +26,8 @@ interface DataTableProps {
     dropdownRef: RefObject<HTMLDivElement | null>;
     setError: (error: string) => void;
     hidePagination?: boolean;
+    /** Rows scroll inside a fixed-height area and the header row stays visible */
+    stickyHeader?: boolean;
     sortColumn?: string;
     sortOrder?: "asc" | "desc";
     onSort?: (column: string) => void;
@@ -50,6 +52,7 @@ export default function DataTable({
     dropdownRef,
     setError,
     hidePagination,
+    stickyHeader,
     sortColumn,
     sortOrder,
     onSort,
@@ -81,8 +84,8 @@ export default function DataTable({
     }
 
     return (
-        <div className="flex flex-col flex-1 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 shadow-sm overflow-hidden rounded-b-2xl">
-            <div className="overflow-x-auto">
+        <div className="flex flex-col flex-1 bg-white dark:bg-[#121831] border border-[#E6E9F2] dark:border-[#232B45] shadow-sm overflow-hidden rounded-b-2xl">
+            <div className={`overflow-x-auto ${stickyHeader ? "max-h-[560px] overflow-y-auto" : ""}`}>
                 <table className="w-full table-fixed border-collapse">
                     <colgroup>
                         {columns.map((col, index) => (
@@ -97,7 +100,7 @@ export default function DataTable({
                             {columns.map((col, index) => (
                                 <th
                                     key={getColumnKey(col, index)}
-                                    className={`px-3 py-4 text-left font-bold tracking-wider text-[#2563eb] dark:text-[#adcbfb] text-[12px] 2xl:text-xl ${col.sortable ? 'cursor-pointer hover:bg-blue-100/50 dark:hover:bg-slate-700' : ''}`}
+                                    className={`px-[14px] py-[11px] text-left font-semibold tracking-normal text-[#1E3A8A] dark:text-[#C9D7FF] text-[12.5px] 2xl:text-xl shadow-[inset_0_-1px_0_#D5DFF3] dark:shadow-[inset_0_-1px_0_#2B3760] ${col.sortable ? 'cursor-pointer hover:bg-blue-100/50 dark:hover:bg-slate-700' : ''}`}
                                     onClick={() => col.sortable && onSort && onSort(col.key)}
                                 >
                                     <div className="flex items-center gap-1.5">
@@ -106,8 +109,8 @@ export default function DataTable({
                                             <span className="shrink-0">
                                                 {sortColumn === col.key ? (
                                                     sortOrder === 'asc'
-                                                        ? <ArrowUp className="w-3 h-3 text-[#2563eb] dark:text-[#adcbfb]" />
-                                                        : <ArrowDown className="w-3 h-3 text-[#2563eb] dark:text-[#adcbfb]" />
+                                                        ? <ArrowUp className="w-3 h-3 opacity-80" />
+                                                        : <ArrowDown className="w-3 h-3 opacity-80" />
                                                 ) : (
                                                     <ArrowUpDown className="w-3 h-3 opacity-40" />
                                                 )}
@@ -118,12 +121,12 @@ export default function DataTable({
                             ))}
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
+                    <tbody className="divide-y divide-[#E6E9F2] dark:divide-[#232B45]">
                         {data.length === 0 ? (
                             <tr>
                                 <td
                                     colSpan={columns.length}
-                                    className="px-3 py-10 text-center text-sm text-slate-400 dark:text-slate-500"
+                                    className="px-[14px] py-10 text-center text-sm text-[#8A94AD] dark:text-[#6F7A96]"
                                 >
                                     No data found
                                 </td>
@@ -132,12 +135,12 @@ export default function DataTable({
                             data.map((row, rowIndex) => (
                                 <tr
                                     key={rowIndex}
-                                    className="transition-colors hover:bg-gray-50 dark:hover:bg-slate-800 bg-white dark:bg-slate-900"
+                                    className="transition-colors hover:bg-[#F3F5FB] dark:hover:bg-[#182040]"
                                 >
                                     {columns.map((col, colIndex) => (
                                         <td
                                             key={`${rowIndex}-${getColumnKey(col, colIndex)}`}
-                                            className="px-3 py-3 align-top text-[12px] 2xl:text-xl text-left text-slate-700 dark:text-slate-200 break-words overflow-hidden"
+                                            className="px-[14px] py-[12px] align-top text-[13px] 2xl:text-xl leading-normal text-left text-[#0F1B3D] dark:text-[#E6EAF5] break-words overflow-hidden"
                                         >
                                             {col.render
                                                 ? col.render(getNestedValue(row, col.key), row)
@@ -152,7 +155,7 @@ export default function DataTable({
             </div>
 
             {!hidePagination && (
-                <div className="flex flex-col md:flex-row items-center justify-between px-6 py-4 border-t border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-900 gap-3">
+                <div className="flex flex-col md:flex-row items-center justify-between px-6 py-4 border-t border-[#E6E9F2] dark:border-[#232B45] gap-3">
                     <div className="flex items-center order-2 md:order-1">
                         <span className="font-semibold text-slate-700 dark:text-slate-200 whitespace-nowrap text-[11px] mr-1">Total Records:</span>
                         <span className="text-[11px] font-semibold text-slate-900 dark:text-white">{totalRecords}</span>

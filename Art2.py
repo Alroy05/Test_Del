@@ -107,16 +107,26 @@ const TypePill = ({ value }: { value: any }) => {
 };
 
 /* Log type filter: react-select styled as the design's pill dropdown */
+/* Breakpoints for the select, matching Tailwind's sm and 2xl */
+const FROM_SM = "@media (min-width: 640px)";
+const FROM_2XL = "@media (min-width: 1536px)";
+
 const logTypeSelectStyles = (dark: boolean): any => {
   const c = dark
     ? { surface: "#121831", hover: "#182040", border: "#232B45", text: "#E6EAF5", faint: "#6F7A96", brand: "#7DA2FF", soft: "#1B2547" }
     : { surface: "#FFFFFF", hover: "#F3F5FB", border: "#E6E9F2", text: "#0F1B3D", faint: "#8A94AD", brand: "#1E3A8A", soft: "#E8EEFF" };
-  const indicator = { color: c.faint, cursor: "pointer", "&:hover": { color: c.text }, svg: { width: 14, height: 14 } };
+  const indicator = {
+    color: c.faint, cursor: "pointer", "&:hover": { color: c.text },
+    svg: { width: 14, height: 14 }, [FROM_2XL]: { svg: { width: 18, height: 18 } },
+  };
 
   return {
+    container: (base: any) => ({ ...base, flex: 1, minWidth: 0 }),
     control: (base: any) => ({
-      ...base, width: 200, height: 34, minHeight: 34, flexWrap: "nowrap", cursor: "pointer",
+      ...base, width: "100%", height: 34, minHeight: 34, flexWrap: "nowrap", cursor: "pointer",
       border: 0, borderRadius: 999, boxShadow: "none", background: "transparent", fontSize: 13, fontWeight: 600,
+      [FROM_SM]: { width: 200 },
+      [FROM_2XL]: { width: 260, height: 42, minHeight: 42, fontSize: 17 },
     }),
     valueContainer: (base: any) => ({ ...base, flexWrap: "nowrap", padding: "0 4px 0 8px" }),
     placeholder: (base: any) => ({
@@ -134,21 +144,22 @@ const logTypeSelectStyles = (dark: boolean): any => {
       background: c.surface, border: `1px solid ${c.border}`, borderRadius: 12,
       boxShadow: "0 18px 40px -16px rgba(15, 27, 61, 0.45)",
     }),
-    menuList: (base: any) => ({ ...base, padding: 0, maxHeight: 280 }),
+    menuList: (base: any) => ({ ...base, padding: 0, maxHeight: 280, [FROM_2XL]: { maxHeight: 420 } }),
     option: (base: any, state: any) => ({
       ...base, display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 8,
       fontSize: 13, cursor: "pointer", fontWeight: state.isSelected ? 600 : 500,
+      [FROM_2XL]: { fontSize: 17, padding: "10px 12px" },
       color: state.isSelected ? c.brand : c.text,
       background: state.isSelected ? c.soft : state.isFocused ? c.hover : "transparent",
       "&:active": { background: state.isSelected ? c.soft : c.hover },
     }),
-    noOptionsMessage: (base: any) => ({ ...base, fontSize: 13, color: c.faint }),
+    noOptionsMessage: (base: any) => ({ ...base, fontSize: 13, color: c.faint, [FROM_2XL]: { fontSize: 17 } }),
   };
 };
 
 const LogTypeControl = ({ children, ...props }: any) => (
   <components.Control {...props}>
-    <Filter className="ml-3 size-3 shrink-0 text-[#1E3A8A] dark:text-[#7DA2FF]" />
+    <Filter className="ml-3 size-3 2xl:size-4 shrink-0 text-[#1E3A8A] dark:text-[#7DA2FF]" />
     {children}
   </components.Control>
 );
@@ -156,7 +167,7 @@ const LogTypeControl = ({ children, ...props }: any) => (
 const LogTypeOption = ({ children, ...props }: any) => (
   <components.Option {...props}>
     <span className="flex-1 min-w-0">{children}</span>
-    {props.isSelected && <Check className="size-3 shrink-0" />}
+    {props.isSelected && <Check className="size-3 2xl:size-4 shrink-0" />}
   </components.Option>
 );
 
@@ -558,7 +569,7 @@ const RequestorArtifactory = () => {
       <div className="flex-1 overflow-y-auto p-3 bg-white dark:bg-slate-950">
         {isLoading && <LoadingOverlay />}
 
-        <div className="max-w-[1400px] mx-auto space-y-3 pb-20">
+        <div className="max-w-[1400px] 2xl:max-w-none mx-auto space-y-3 pb-20">
           <TitleBar
             sarId={requestId}
             projectName={allData?.projectName ?? "—"}
@@ -568,14 +579,14 @@ const RequestorArtifactory = () => {
 
           <section className="text-[#0F1B3D] dark:text-[#E6EAF5]">
             {/* the DataTable below draws the rest of the card frame */}
-            <div className="flex flex-wrap items-center gap-[10px] px-[18px] py-[14px] bg-white dark:bg-[#121831] border border-b-0 border-[#E6E9F2] dark:border-[#232B45] rounded-t-2xl">
-              <span className="size-7 shrink-0 inline-flex items-center justify-center rounded-lg text-[#1E3A8A] bg-[#E8EEFF] dark:text-[#7DA2FF] dark:bg-[#1B2547]">
-                <History className="size-[14px]" />
+            <div className="flex flex-wrap items-center gap-[10px] 2xl:gap-3.5 px-[18px] py-[14px] 2xl:px-6 2xl:py-[18px] bg-white dark:bg-[#121831] border border-b-0 border-[#E6E9F2] dark:border-[#232B45] rounded-t-2xl">
+              <span className="size-7 2xl:size-10 shrink-0 inline-flex items-center justify-center rounded-lg 2xl:rounded-[10px] text-[#1E3A8A] bg-[#E8EEFF] dark:text-[#7DA2FF] dark:bg-[#1B2547]">
+                <History className="size-[14px] 2xl:size-5" />
               </span>
-              <h2 className="font-jakarta-sans text-[15px] font-bold text-[#1E3A8A] dark:text-[#7DA2FF]">Activity Logs</h2>
-              <span className="px-[9px] py-0.5 rounded-full text-[11.5px] font-bold text-[#1E3A8A] bg-[#E8EEFF] dark:text-[#7DA2FF] dark:bg-[#1B2547]">{totalRecords}</span>
-              <div className="ml-auto flex flex-wrap items-center gap-2">
-                <div className="flex items-center h-[38px] rounded-full border-[1.5px] border-transparent transition-shadow [background:linear-gradient(#fff,#fff)_padding-box,linear-gradient(90deg,#3B6CF6_0%,#8B5CF6_50%,#EC4899_100%)_border-box] dark:[background:linear-gradient(#121831,#121831)_padding-box,linear-gradient(90deg,#6B93FF_0%,#A78BFA_50%,#F472B6_100%)_border-box] shadow-[0_8px_22px_-14px_rgba(139,92,246,0.28)] focus-within:shadow-[0_0_0_4px_rgba(139,92,246,0.16),0_10px_28px_-12px_rgba(139,92,246,0.28)]">
+              <h2 className="font-jakarta-sans text-[15px] 2xl:text-[22px] font-bold text-[#1E3A8A] dark:text-[#7DA2FF]">Activity Logs</h2>
+              <span className="px-[9px] py-0.5 2xl:px-3 2xl:py-1 rounded-full text-[11.5px] 2xl:text-[15px] font-bold text-[#1E3A8A] bg-[#E8EEFF] dark:text-[#7DA2FF] dark:bg-[#1B2547]">{totalRecords}</span>
+              <div className="w-full sm:w-auto sm:ml-auto flex items-center gap-2 2xl:gap-3">
+                <div className="flex flex-1 sm:flex-none min-w-0 items-center h-[38px] 2xl:h-[46px] rounded-full border-[1.5px] border-transparent transition-shadow [background:linear-gradient(#fff,#fff)_padding-box,linear-gradient(90deg,#3B6CF6_0%,#8B5CF6_50%,#EC4899_100%)_border-box] dark:[background:linear-gradient(#121831,#121831)_padding-box,linear-gradient(90deg,#6B93FF_0%,#A78BFA_50%,#F472B6_100%)_border-box] shadow-[0_8px_22px_-14px_rgba(139,92,246,0.28)] focus-within:shadow-[0_0_0_4px_rgba(139,92,246,0.16),0_10px_28px_-12px_rgba(139,92,246,0.28)]">
                   <ReactSelect
                     isMulti
                     name="logType"
@@ -611,8 +622,8 @@ const RequestorArtifactory = () => {
                   }
                   }
                   // className="inline-flex items-center gap-2 px-5 py-3 bg-kpmg-blue hover:-translate-y-px transition-all text-white font-medium text-[13px] rounded-[10px] shadow-md whitespace-nowrap cursor-pointer border-none"
-                  className="inline-flex items-center gap-2 cursor-pointer px-[14px] py-2 rounded-[10px] text-[13px] font-semibold whitespace-nowrap border border-[#1E3A8A] bg-[#1E3A8A] text-white transition-[filter] hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3B6CF6] dark:border-[#7DA2FF] dark:bg-[#7DA2FF] dark:text-[#0B1020]">
-                  <Download className="size-[14px]" />
+                  className="inline-flex shrink-0 items-center gap-2 cursor-pointer px-[14px] py-2 2xl:px-5 2xl:py-[11px] rounded-[10px] 2xl:rounded-xl text-[13px] 2xl:text-[17px] font-semibold whitespace-nowrap border border-[#1E3A8A] bg-[#1E3A8A] text-white transition-[filter] hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3B6CF6] dark:border-[#7DA2FF] dark:bg-[#7DA2FF] dark:text-[#0B1020]">
+                  <Download className="size-[14px] 2xl:size-[18px]" />
                   Export Artifacts
                 </button>
               </div>

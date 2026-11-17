@@ -26,7 +26,7 @@ interface DataTableProps {
     dropdownRef: RefObject<HTMLDivElement | null>;
     setError: (error: string) => void;
     hidePagination?: boolean;
-    /** Rows scroll inside a fixed-height area and the header row stays visible */
+    /** Rows scroll inside an area sized to the screen height and the header row stays visible */
     stickyHeader?: boolean;
     sortColumn?: string;
     sortOrder?: "asc" | "desc";
@@ -85,7 +85,7 @@ export default function DataTable({
 
     return (
         <div className="flex flex-col flex-1 bg-white dark:bg-[#121831] border border-[#E6E9F2] dark:border-[#232B45] shadow-sm overflow-hidden rounded-b-2xl">
-            <div className={`overflow-x-auto ${stickyHeader ? "max-h-[560px] overflow-y-auto" : ""}`}>
+            <div className={`overflow-x-auto ${stickyHeader ? "max-h-[max(24rem,calc(100vh-26rem))] overflow-y-auto" : ""}`}>
                 <table className="w-full table-fixed border-collapse">
                     <colgroup>
                         {columns.map((col, index) => (
@@ -100,7 +100,7 @@ export default function DataTable({
                             {columns.map((col, index) => (
                                 <th
                                     key={getColumnKey(col, index)}
-                                    className={`px-[14px] py-[11px] text-left font-semibold tracking-normal text-[#1E3A8A] dark:text-[#C9D7FF] text-[12.5px] 2xl:text-xl shadow-[inset_0_-1px_0_#D5DFF3] dark:shadow-[inset_0_-1px_0_#2B3760] ${col.sortable ? 'cursor-pointer hover:bg-blue-100/50 dark:hover:bg-slate-700' : ''}`}
+                                    className={`px-[14px] py-[11px] 2xl:px-5 2xl:py-[14px] text-left font-semibold tracking-normal text-[#1E3A8A] dark:text-[#C9D7FF] text-[12.5px] 2xl:text-xl shadow-[inset_0_-1px_0_#D5DFF3] dark:shadow-[inset_0_-1px_0_#2B3760] ${col.sortable ? 'cursor-pointer hover:bg-blue-100/50 dark:hover:bg-slate-700' : ''}`}
                                     onClick={() => col.sortable && onSort && onSort(col.key)}
                                 >
                                     <div className="flex items-center gap-1.5">
@@ -109,10 +109,10 @@ export default function DataTable({
                                             <span className="shrink-0">
                                                 {sortColumn === col.key ? (
                                                     sortOrder === 'asc'
-                                                        ? <ArrowUp className="w-3 h-3 opacity-80" />
-                                                        : <ArrowDown className="w-3 h-3 opacity-80" />
+                                                        ? <ArrowUp className="w-3 h-3 2xl:w-4 2xl:h-4 opacity-80" />
+                                                        : <ArrowDown className="w-3 h-3 2xl:w-4 2xl:h-4 opacity-80" />
                                                 ) : (
-                                                    <ArrowUpDown className="w-3 h-3 opacity-40" />
+                                                    <ArrowUpDown className="w-3 h-3 2xl:w-4 2xl:h-4 opacity-40" />
                                                 )}
                                             </span>
                                         )}
@@ -126,7 +126,7 @@ export default function DataTable({
                             <tr>
                                 <td
                                     colSpan={columns.length}
-                                    className="px-[14px] py-10 text-center text-sm text-[#8A94AD] dark:text-[#6F7A96]"
+                                    className="px-[14px] py-10 text-center text-sm 2xl:text-lg text-[#8A94AD] dark:text-[#6F7A96]"
                                 >
                                     No data found
                                 </td>
@@ -140,7 +140,7 @@ export default function DataTable({
                                     {columns.map((col, colIndex) => (
                                         <td
                                             key={`${rowIndex}-${getColumnKey(col, colIndex)}`}
-                                            className="px-[14px] py-[12px] align-top text-[13px] 2xl:text-xl leading-normal text-left text-[#0F1B3D] dark:text-[#E6EAF5] break-words overflow-hidden"
+                                            className="px-[14px] py-[12px] 2xl:px-5 2xl:py-[15px] align-top text-[13px] 2xl:text-xl leading-normal text-left text-[#0F1B3D] dark:text-[#E6EAF5] break-words overflow-hidden"
                                         >
                                             {col.render
                                                 ? col.render(getNestedValue(row, col.key), row)
@@ -155,28 +155,28 @@ export default function DataTable({
             </div>
 
             {!hidePagination && (
-                <div className="flex flex-col md:flex-row items-center justify-between px-6 py-4 border-t border-[#E6E9F2] dark:border-[#232B45] gap-3">
+                <div className="flex flex-col md:flex-row items-center justify-between px-6 py-4 2xl:py-5 border-t border-[#E6E9F2] dark:border-[#232B45] gap-3">
                     <div className="flex items-center order-2 md:order-1">
-                        <span className="font-semibold text-slate-700 dark:text-slate-200 whitespace-nowrap text-[11px] mr-1">Total Records:</span>
-                        <span className="text-[11px] font-semibold text-slate-900 dark:text-white">{totalRecords}</span>
+                        <span className="font-semibold text-slate-700 dark:text-slate-200 whitespace-nowrap text-[11px] 2xl:text-[15px] mr-1">Total Records:</span>
+                        <span className="text-[11px] 2xl:text-[15px] font-semibold text-slate-900 dark:text-white">{totalRecords}</span>
                     </div>
 
                     <div className="flex items-center gap-4 order-1 md:order-2">
-                        <div className="flex items-center space-x-2 border-r border-gray-100 dark:border-slate-700 pr-4 h-6">
-                            <span className="font-semibold text-slate-700 dark:text-slate-200 whitespace-nowrap text-[11px] tracking-wide">Show</span>
+                        <div className="flex items-center space-x-2 border-r border-gray-100 dark:border-slate-700 pr-4 h-6 2xl:h-9">
+                            <span className="font-semibold text-slate-700 dark:text-slate-200 whitespace-nowrap text-[11px] 2xl:text-[15px] tracking-wide">Show</span>
                             <div className="relative" ref={dropdownRef}>
                                 <button
                                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                                    className="h-7 flex items-center gap-1 text-[11px] border border-gray-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-700 dark:text-white px-2 cursor-pointer"
+                                    className="h-7 2xl:h-9 2xl:px-3 flex items-center gap-1 text-[11px] 2xl:text-[15px] border border-gray-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-700 dark:text-white px-2 cursor-pointer"
                                 >
-                                    {pageSize} <ChevronDown className="w-3 h-3" />
+                                    {pageSize} <ChevronDown className="w-3 h-3 2xl:w-4 2xl:h-4" />
                                 </button>
                                 {isDropdownOpen && (
                                     <div className="absolute bottom-full left-0 mb-1 w-full min-w-[50px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded shadow-lg z-50">
                                         {pageSizes.map((size) => (
                                             <button
                                                 key={size}
-                                                className="w-full px-2 py-1.5 text-[11px] text-left hover:bg-blue-50 dark:hover:bg-slate-700 cursor-pointer"
+                                                className="w-full px-2 py-1.5 text-[11px] 2xl:text-[15px] text-left hover:bg-blue-50 dark:hover:bg-slate-700 cursor-pointer"
                                                 onClick={() => { setPageSize(size); setCurrentPage(1); setIsDropdownOpen(false); }}
                                             >
                                                 {size}
@@ -186,8 +186,8 @@ export default function DataTable({
                                 )}
                             </div>
 
-                            <div className="flex items-center space-x-2 border-l border-gray-100 dark:border-slate-700 pl-4 h-6">
-                                <span className="font-semibold text-slate-700 dark:text-slate-200 whitespace-nowrap text-[11px] tracking-wide">Go To:</span>
+                            <div className="flex items-center space-x-2 border-l border-gray-100 dark:border-slate-700 pl-4 h-6 2xl:h-9">
+                                <span className="font-semibold text-slate-700 dark:text-slate-200 whitespace-nowrap text-[11px] 2xl:text-[15px] tracking-wide">Go To:</span>
                                 <input
                                     type="number"
                                     min="1"
@@ -195,33 +195,33 @@ export default function DataTable({
                                     value={typedPage}
                                     onChange={(e) => setTypedPage(Number(e.target.value))}
                                     onKeyDown={(e) => e.key === 'Enter' && handleGoToPage()}
-                                    className="w-10 h-7 text-center text-[11px] border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-white focus:outline-none focus:border-blue-500"
+                                    className="w-10 h-7 2xl:w-14 2xl:h-9 text-center text-[11px] 2xl:text-[15px] border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-white focus:outline-none focus:border-blue-500"
                                 />
                                 <button
                                     onClick={handleGoToPage}
-                                    className="h-7 w-7 flex items-center justify-center border border-gray-200 dark:border-slate-600 text-slate-500 rounded-lg transition-colors cursor-pointer hover:bg-blue-50 dark:hover:bg-slate-700"
+                                    className="h-7 w-7 2xl:h-9 2xl:w-9 flex items-center justify-center border border-gray-200 dark:border-slate-600 text-slate-500 rounded-lg transition-colors cursor-pointer hover:bg-blue-50 dark:hover:bg-slate-700"
                                 >
-                                    <MoveRight className="w-3 h-3" />
+                                    <MoveRight className="w-3 h-3 2xl:w-4 2xl:h-4" />
                                 </button>
                             </div>
                         </div>
-                        <div className="flex items-center text-[11px] space-x-2">
+                        <div className="flex items-center text-[11px] 2xl:text-[15px] space-x-2">
                             <button
                                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                                 disabled={currentPage === 1}
-                                className={`w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 dark:border-slate-600 text-slate-500 transition-all disabled:opacity-40 cursor-pointer ${currentPage === 1 ? 'hidden' : ''}`}
+                                className={`w-8 h-8 2xl:w-10 2xl:h-10 flex items-center justify-center rounded-lg border border-gray-200 dark:border-slate-600 text-slate-500 transition-all disabled:opacity-40 cursor-pointer ${currentPage === 1 ? 'hidden' : ''}`}
                             >
-                                <ChevronLeft className="w-3 h-3" />
+                                <ChevronLeft className="w-3 h-3 2xl:w-4 2xl:h-4" />
                             </button>
-                            <span className="font-semibold text-slate-700 dark:text-slate-200 whitespace-nowrap text-[11px] tracking-wide">
+                            <span className="font-semibold text-slate-700 dark:text-slate-200 whitespace-nowrap text-[11px] 2xl:text-[15px] tracking-wide">
                                 Page {currentPage} of {totalPages}
                             </span>
                             <button
                                 onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                                 disabled={currentPage === totalPages}
-                                className={`w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 dark:border-slate-600 text-slate-500 transition-all disabled:opacity-40 cursor-pointer ${currentPage === totalPages ? 'hidden' : ''}`}
+                                className={`w-8 h-8 2xl:w-10 2xl:h-10 flex items-center justify-center rounded-lg border border-gray-200 dark:border-slate-600 text-slate-500 transition-all disabled:opacity-40 cursor-pointer ${currentPage === totalPages ? 'hidden' : ''}`}
                             >
-                                <ChevronRight className="w-3 h-3" />
+                                <ChevronRight className="w-3 h-3 2xl:w-4 2xl:h-4" />
                             </button>
                         </div>
                     </div>

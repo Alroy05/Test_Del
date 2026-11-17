@@ -8,7 +8,6 @@ import {
   X,
   Search,
   Check,
-  ChevronRight,
   Cloud,
   Info,
   Keyboard,
@@ -423,49 +422,6 @@ export default function AddRequest() {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mx-auto w-full max-w-[980px] px-3 sm:px-4 pt-3 pb-10">
-          {/* Steps */}
-          <div
-            className={`flex flex-wrap items-center gap-x-4 gap-y-2.5 px-3 py-2.5 mb-3 rounded-2xl border ${borderCls} bg-[linear-gradient(100deg,#EEF3FF_0%,#F4EFFF_55%,#FDF0F7_100%)] dark:bg-[linear-gradient(100deg,#141D3F_0%,#1B1840_55%,#251633_100%)]`}
-          >
-            <div
-              className="flex flex-wrap items-center gap-x-2.5 gap-y-2 text-[12.5px] font-semibold"
-              aria-label="Steps"
-            >
-              {[
-                { label: "APM / TPM ID", on: true },
-                { label: "Solution type", on: ready },
-                { label: "Intake", on: ready && pickedType != null },
-              ].map((s, i) => (
-                <React.Fragment key={s.label}>
-                  {i > 0 && (
-                    <ChevronRight
-                      className={`size-3.5 shrink-0 ${faintCls}`}
-                      aria-hidden="true"
-                    />
-                  )}
-                  <span
-                    className={clsx(
-                      "inline-flex items-center gap-2 py-1 pl-1 pr-3 rounded-full border transition-colors",
-                      s.on
-                        ? `${borderCls} bg-white/80 dark:bg-[#121831]/70 text-[#0F1B3D] dark:text-[#E6EAF5]`
-                        : `border-transparent ${faintCls}`,
-                    )}
-                  >
-                    <b
-                      className={clsx(
-                        stepNumCls,
-                        s.on ? brandFillCls : stepNumOffCls,
-                      )}
-                    >
-                      {i + 1}
-                    </b>
-                    {s.label}
-                  </span>
-                </React.Fragment>
-              ))}
-            </div>
-          </div>
-
           <div
             className={`rounded-2xl border ${borderCls} bg-white dark:bg-[#121831] shadow-[0_1px_2px_rgba(15,27,61,0.04),0_8px_24px_-16px_rgba(15,27,61,0.18)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_8px_24px_-16px_rgba(0,0,0,0.7)] overflow-hidden`}
           >
@@ -546,9 +502,10 @@ export default function AddRequest() {
                 <div className={`mb-1.5 text-[12px] font-medium ${mutedCls}`}>
                   Search from KIEPs by APM / TPM ID
                 </div>
-                <label
+                {/* a div, not a label: globals.css makes every label inline-block, which breaks the row */}
+                <div
                   className={clsx(
-                    `flex items-center gap-2 h-11 pl-3.5 pr-1.5 rounded-xl border ${borderCls} transition-all`,
+                    `flex items-center gap-2 w-full h-11 pl-3.5 pr-1.5 rounded-xl border ${borderCls} transition-all`,
                     isManual
                       ? "bg-[#F9FAFD] dark:bg-[#0F1529] cursor-not-allowed"
                       : "bg-white dark:bg-[#0F1529] focus-within:border-[#3B6CF6] focus-within:shadow-[0_0_0_3px_rgba(59,108,246,0.14)] dark:focus-within:border-[#7DA2FF] dark:focus-within:shadow-[0_0_0_3px_rgba(125,162,255,0.16)]",
@@ -593,7 +550,7 @@ export default function AddRequest() {
                     <Search className="size-3.5" />
                     Search
                   </button>
-                </label>
+                </div>
 
                 {error && (
                   <div className="flex items-start gap-2.5 mt-3 px-3.5 py-2.5 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300 text-[13px] font-medium">
@@ -715,20 +672,7 @@ export default function AddRequest() {
                           )}
                         </div>
                       </div>
-                    ) : (
-                      !apmData &&
-                      !loading && (
-                        <div
-                          className={`flex flex-col sm:flex-row items-center justify-center gap-2 rounded-xl border border-dashed border-[#D5DAE7] dark:border-[#2F3958] px-4 py-7 text-center text-[13px] ${mutedCls}`}
-                        >
-                          <Search
-                            className={`size-4 shrink-0 ${faintCls}`}
-                            aria-hidden="true"
-                          />
-                          No data available. Please perform a search.
-                        </div>
-                      )
-                    )}
+                    ) : null}
                   </div>
                 )}
               </div>

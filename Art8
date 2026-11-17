@@ -1,78 +1,924 @@
-def ingest_header_2_json(
-    html_content: str,
-    json_data: dict,
-    request_obj,
-) -> str:
-    if not isinstance(html_content, str) or not html_content.strip():
-        raise ValueError(
-            "html_content must be a non-empty string."
-        )
+from django.db import models
+from django.conf import settings
+from .requestor_team import RequestorTeam
 
-    if not isinstance(json_data, dict):
-        raise ValueError(
-            "json_data must be a dictionary."
-        )
 
-    description = str(
-        json_data.get("description") or ""
-    ).strip()
+class LogUpdate(models.Model):
 
-    was_html_encoded = (
-        "&lt;" in html_content
-        and "&gt;" in html_content
+    STATUS_EVENT = 1
+    COMMENTS_EVENT = 2
+    DOC_EVENT = 3
+    EMAIL_EVENT = 4
+    INTAKE_EVENT = 5
+    DATE_EVENT = 6
+    RESP_EVENT = 7
+    ANALYZE_EVENT = 8
+    SEC_ANALYZE_EVENT = 9
+    ARTIFACT_EVENT = 10
+    AI_EVENT = 11
+    ATO_STATUS_EVENT = 12
+    SAR_LOG_EVENT = 13
+    FINDINGS_EVENT = 14
+    ADO_EVENT = 15
+    RESET_INTAKE_EVENT = 16
+    RESET_REVIEW_EVENT = 17
+    CHANGE_SOLUTION_TYPE_EVENT = 18
+    RES_ASS_EVENT = 19
+
+    RES_FOR_ASSESSMENT = "assessment_status"
+    RES_FOR_REQUEST = "request_status"
+    RES_FOR_SUB_STATUS = "request_sub_status"
+    RES_FOR_CLEARANCE_COMMENT = "Clearance comment"
+    RES_FOR_CLEARANCE_DOC = "Clearance document"
+    RES_FOR_REQUEST_COMMENT = "SAR request comment"
+    RES_FOR_DELETE_FINDINGS = "Delete findings"
+    RES_FOR_AI_SKIP = "Skip AI Evaluation"
+
+    REV_REASON_TYPE_ENV = 1
+    REV_REASON_TYPE_LACK = 2
+    REV_REASON_TYPE_REM = 3
+    REV_REASON_TYPE_REQ = 4
+    REV_REASON_TYPE_OTHER = 5
+
+    EVENT_TYPE_CHOICES = {
+        STATUS_EVENT: "Status",
+        COMMENTS_EVENT: "Comment",
+        DOC_EVENT: "Artifacts",
+        EMAIL_EVENT: "Email",
+        INTAKE_EVENT: "Intake form data",
+        DATE_EVENT: "Date change",
+        RESP_EVENT: "Response provided",
+        ANALYZE_EVENT: "Coordinator Comments",
+        SEC_ANALYZE_EVENT: "Security Resource Comments",
+        ARTIFACT_EVENT: "Checklist Update",
+        AI_EVENT: "AI",
+        ATO_STATUS_EVENT: "ATO Status Event",
+        FINDINGS_EVENT: "Findings",
+        ADO_EVENT: "ADO",
+        RESET_INTAKE_EVENT: "Reset Intake",
+        RESET_REVIEW_EVENT: "Reset Review",
+        CHANGE_SOLUTION_TYPE_EVENT: "Change Solution Type",
+        RES_ASS_EVENT: "Re-initiate Assessment"
+    }
+
+    REV_GO_LIVE_REASON_CHOICES = {
+        REV_REASON_TYPE_ENV: "Environment not ready",
+        REV_REASON_TYPE_LACK: "Lack of response",
+        REV_REASON_TYPE_REM: "Remediation Efforts/Retest",
+        REV_REASON_TYPE_REQ: "Required/Missing documentation",
+        REV_REASON_TYPE_OTHER: "Other",
+    }
+
+    id = models.AutoField(primary_key=True)
+    request = models.ForeignKey(
+        RequestorTeam, on_delete=models.CASCADE, db_column="sgp_id", related_name="logs"
+    )
+    event = models.IntegerField()
+    old_value = models.TextField(null=True, blank=True)
+    new_value = models.TextField(null=True, blank=True)
+    response_for = models.CharField(max_length=255)
+    user_role = models.CharField(max_length=25, null=True, blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        db_column="created_by",
+        to_field="id",
+    )
+    created_date = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "log_update"
+        ordering = ["-created_date"]
+        indexes = [
+            models.Index(
+                fields=[
+                    "request",
+                    "event",
+                    "created_date",
+                ],
+                name="log_timeline_idx",
+            ),
+        ]
+
+    @classmethod
+    def get_event_type_display(cls, event_id):
+        return cls.EVENT_TYPE_CHOICES.get(event_id, "-")
+
+    @classmethod
+    def get_rev_go_live_reason_display(cls, reason_id):
+        return cls.REV_GO_LIVE_REASON_CHOICES.get(reason_id, "-")
+
+    def get_event_type_as_string(self):
+        return self.EVENT_TYPE_CHOICES.get(self.event, "Unknown")
+
+    def log_update_user(self):
+        return self.created_by
+
+    @property
+    def event_string(self):
+        return self.get_event_type_as_string()
+
+    @property
+    def created_by_name(self):
+        if (
+            self.created_by
+            and hasattr(self.created_by, "first_name")
+            and hasattr(self.created_by, "last_name")
+        ):
+            return f"{self.created_by.first_name} {self.created_by.last_name}"
+        return None
+
+    @property
+    def old_value_str(self):
+        if self.event == self.STATUS_EVENT:
+            if self.response_for == self.RES_FOR_REQUEST:
+                status_str = RequestorTeam.get_status_as_string_by_id(self.old_value)  # type: ignore
+                if status_str != "-":
+                    return status_str
+        return self.old_value
+
+    @property
+    def new_value_str(self):
+        if self.event == self.STATUS_EVENT:
+            if self.response_for == self.RES_FOR_REQUEST:
+                status_str = RequestorTeam.get_status_as_string_by_id(self.new_value)  # type: ignore
+                if status_str != "-":
+                    return status_str
+        return self.new_value
+
+
+# Analyze
+# status -> response_for
+# comments -> new_value
+# event -> ANALYZE_EVENT
+
+
+
+
+from datetime import datetime
+
+from django.db import models
+from django.conf import settings
+
+from app.models.user import UserData
+
+
+class RequestorTeam(models.Model):
+    STATUS_DRAFT = 0
+    STATUS_NEW = 1
+    STATUS_DELETED = 3
+    STATUS_REJECT = 5
+    STATUS_ANALYZE = 6
+    STATUS_WALKTHROUGH = 7
+    STATUS_ANALYZE_REQ = 8
+    STATUS_WALKTHROUGH_DATA = 9
+    STATUS_ASSESSMENT = 10
+    STATUS_TESTER = 11
+    STATUS_SAR_CREATION = 12
+    STATUS_SAR_COMBINED = 15
+    STATUS_SOLUTION_CONSULTATION = 17
+    STATUS_SS_REVIEW = 20
+    STATUS_HOLD = 23
+    STATUS_ASSIGN_RESOURCE = 32
+    STATUS_CLEARANCE_SOLUTION = 36
+    STATUS_SAR_COMBINED_REJECT = 37
+    STATUS_SAR_COMBINED_APPROVE = 38
+    STATUS_CLEARANCE_SOLUTION_REJECT = 39
+    STATUS_CANCEL = 41
+    STATUS_SECURITY_ANALYZE = 42
+    STATUS_SECURITY_ANALYZE_SOL = 43
+    STATUS_SIGNAL_VERIFICATION = 80
+    STATUS_SIGNAL_VERIFICATION_SOL = 81
+    STATUS_DRAFT_ON_HOLD = 44
+    STATUS_CONTINUOUS_MONITORING = 45
+    STATUS_DRAFT_REOPENED = 46
+    STATUS_CLEARANCE = 54
+    STATUS_COMB_IPG_TEMPLATE_REVIEW = 70
+    STATUS_PROD_ONBOARDING = 71
+    STATUS_RESET_TO_INTAKE = 85
+    STATUS_REINITIATE_ASSESSMENT = 86
+    STATUS_RESET_TO_VALIDATE = 87
+
+    # substatus
+    SUB_STATUS_SAR_TEMPLATE_PENDING = 56
+    SUB_STATUS_CLEARANCE_SOLUTION_REJECT = 50
+    SUB_STATUS_CLEARANCE_SOLUTION = 51
+    SUB_STATUS_SAR_COMBINED = 52
+    SUB_STATUS_SAR_COMBINED_SEC_ANA = 53
+    SUB_STATUS_SAR_TEMPLATE_COMPLETED = 55
+    SUB_STATUS_SAR_REJECTED_BY_REQUESTOR = 57
+    SUB_STATUS_SAR_APPROVED_BY_REQUESTOR = 58
+    SUB_STATUS_SAR_COMBINED_REJECT = 59
+    SUB_STATUS_SAR_COMBINED_APPROVE = 60
+    SUB_STATUS_AI_FAILED = 61
+    SUB_STATUS_AI_EVALUATION = 62
+    SUB_STATUS_AI_COMPLETE = 63
+    SUB_STATUS_SECURITY_REVIEW = 64
+    SUB_STATUS_SOL_TEAM_REVIEW = 65
+    SUB_STATUS_LEADERSHIP_REVIEW = 66
+    SUB_STATUS_LEADERSHIP_ACCEPT = 67
+    SUB_STATUS_COMB_TEMPLATE_REVIEW = 69
+    SUB_STATUS_SOL_COMB_TEMPLATE_REVIEW = 71
+    SUB_STATUS_SEC_COMB_TEMPLATE_REVIEW = 72
+    SUB_STATUS_REVIEW_FINDINGS_DONE = 73
+    SUB_STATUS_ISSUE_COMPLETED = 74
+    SUB_STATUS_COMPLETED = 75
+    SUB_STATUS_HOLD = 76
+    SUB_STATUS_REPORT = 77
+    SUB_STATUS_REQ_ANALYZE = 78
+    SUB_STATUS_PULLING_TOOLDATA = 79
+    SUB_STATUS_DATA_PULL_COMPLETE = 82
+    SUB_STATUS_LEADERSHIP_REJECT = 68
+    SUB_STATUS_SEC_FINDINGS_VALID = 83
+    SUB_STATUS_BUSINESS_CONSIDERATION = 84
+
+    REQUEST_TYPE_OLD = 1
+    REQUEST_TYPE_NEW = 2
+    REQUEST_TYPE_COMPOSITE = 3
+
+    USER_TYPE_RQ = 2
+    USER_TYPE_SS = 3
+    USER_TYPE_TS = 5
+    USER_TYPE_TL = 6
+    USER_TYPE_SECURE_CODE_CONTACT = 9
+    USER_TYPE_SECURITY_OFFICER = 12
+
+    SAR_TYPE_NEW = 1
+    SAR_TYPE_CTR = 1
+
+    SAR_NOT_CREATED = 1
+    SAR_CREATED = 2
+
+    REV_REASON_TYPE_ENV = 1
+    REV_REASON_TYPE_LACK = 2
+    REV_REASON_TYPE_REM = 3
+    REV_REASON_TYPE_REQ = 4
+    REV_REASON_TYPE_OTHER = 5
+
+    ATO_PROVISIONAL = 1
+    ATO_COMPLIANT = 2
+    ATO_AT_RISK = 3
+    ATO_REVOKED = 4
+
+    ATO_STATUS_CHOICES = {
+        ATO_PROVISIONAL: "Provisional",
+        ATO_COMPLIANT: "Compliant",
+        ATO_AT_RISK: "At Risk",
+        ATO_REVOKED: "Revoked",
+    }
+
+    REV_GO_LIVE_REASON_CHOICES = {
+        REV_REASON_TYPE_ENV: "Environment not ready",
+        REV_REASON_TYPE_LACK: "Lack of response",
+        REV_REASON_TYPE_REM: "Remediation Efforts/Retest",
+        REV_REASON_TYPE_REQ: "Required/Missing documentation",
+        REV_REASON_TYPE_OTHER: "Other",
+    }
+
+    REQUEST_LIST_CHOICES = {
+        REQUEST_TYPE_OLD: "Not integrated with KIEPs",
+        REQUEST_TYPE_NEW: "Integrated with KIEPs",
+        REQUEST_TYPE_COMPOSITE: "Composite SAR",
+    }
+
+    STATUS_CHOICES = {
+        STATUS_DRAFT: "Draft",
+        STATUS_NEW: "Corrections Required",
+        STATUS_DELETED: "Deleted",
+        STATUS_REJECT: "No Review Needed",
+        STATUS_ANALYZE: "Submitted for Review",
+        STATUS_WALKTHROUGH: "Kick-Off",
+        STATUS_ANALYZE_REQ: "Information Required",
+        STATUS_WALKTHROUGH_DATA: "Information Provided",
+        STATUS_ASSESSMENT: "Planning",
+        STATUS_TESTER: "Assessment in Progress",
+        STATUS_SAR_CREATION: "SAR Drafting in Progress",
+        STATUS_CLEARANCE: "Final GISG Leadership Review",
+        STATUS_SAR_COMBINED: "Final Coordinator Review",
+        STATUS_SOLUTION_CONSULTATION: "Solution Consultation",
+        STATUS_HOLD: "On Hold",
+        STATUS_ASSIGN_RESOURCE: "Resource Assignment",
+        STATUS_CLEARANCE_SOLUTION: "Pending Approval to Publish",
+        SUB_STATUS_SAR_COMBINED_REJECT: "Corrections Required",
+        SUB_STATUS_SAR_COMBINED_APPROVE: "Ready for Publication",
+        SUB_STATUS_SAR_TEMPLATE_PENDING: "Final SAR Drafted",
+        # STATUS_CLEARANCE_SOLUTION_REJECT: "Not approved to publish",
+        STATUS_CANCEL: "Cancelled",
+        STATUS_SECURITY_ANALYZE: "Intake Verification",
+        STATUS_SECURITY_ANALYZE_SOL: "Incomplete Intake Form",
+        STATUS_SIGNAL_VERIFICATION: "Intake and Signal Verification",
+        STATUS_SIGNAL_VERIFICATION_SOL: "Incomplete Intake Form",
+        STATUS_DRAFT_ON_HOLD: "Draft Intake on Hold",
+        STATUS_SS_REVIEW: "Ready for security supervisor review",
+        STATUS_COMB_IPG_TEMPLATE_REVIEW: "Corrections Required",
+        SUB_STATUS_CLEARANCE_SOLUTION_REJECT: "Not Approved to Publish",
+        SUB_STATUS_CLEARANCE_SOLUTION: "Pending Approval to Publish",
+        SUB_STATUS_SAR_COMBINED: "Test",  # TODO add appropriate string
+        SUB_STATUS_REPORT: "SAR Published",
+        SUB_STATUS_SAR_COMBINED_SEC_ANA: "Final SAR Drafted",
+        SUB_STATUS_AI_EVALUATION: "AI Evaluation in Progress",
+        SUB_STATUS_AI_FAILED: "AI Evaluation Failed",
+        SUB_STATUS_AI_COMPLETE: "AI Evaluation Completed",
+        SUB_STATUS_SECURITY_REVIEW: "Security Resource Review",
+        #here
+        SUB_STATUS_SOL_TEAM_REVIEW: "Solution Team Review",
+        SUB_STATUS_LEADERSHIP_REVIEW: "Leadership Review",
+        SUB_STATUS_LEADERSHIP_ACCEPT: "Accepted by Leadership",
+        SUB_STATUS_LEADERSHIP_REJECT: "Rejected by Leadership",
+        SUB_STATUS_SAR_TEMPLATE_COMPLETED: "Security Review Complete",
+        SUB_STATUS_SAR_REJECTED_BY_REQUESTOR: "Revisions Requested (by solution team)",
+        SUB_STATUS_SAR_APPROVED_BY_REQUESTOR: "SAR Ready for Publication",
+        SUB_STATUS_COMB_TEMPLATE_REVIEW: "Corrections Required (by coordinator)",
+        SUB_STATUS_SOL_COMB_TEMPLATE_REVIEW: "Corrections Required (by solution team)",
+        SUB_STATUS_SEC_COMB_TEMPLATE_REVIEW: "Corrections Required (by security resources)",
+        SUB_STATUS_REVIEW_FINDINGS_DONE: "Critical Findings - Reviewed by Leadership",
+        SUB_STATUS_ISSUE_COMPLETED: "Findings review complete",
+        # SUB_STATUS_COMPLETED: "Findings review complete",
+        STATUS_CONTINUOUS_MONITORING: "Continuous Monitoring",
+        STATUS_DRAFT_REOPENED: "Edit Intake",
+        SUB_STATUS_REQ_ANALYZE: "Request Analysis in Progress",
+        SUB_STATUS_PULLING_TOOLDATA: "Pulling Data from Tools",
+        SUB_STATUS_DATA_PULL_COMPLETE: "Data Pull Complete",
+        STATUS_PROD_ONBOARDING: "Production Onboarding",
+        STATUS_RESET_TO_INTAKE: "Reset to Intake",
+        STATUS_RESET_TO_VALIDATE: "Reset to Assessment Validate",
+        STATUS_REINITIATE_ASSESSMENT: "Reinitiate Assessment",
+        SUB_STATUS_SEC_FINDINGS_VALID: "Assessment Under Validation",
+        SUB_STATUS_BUSINESS_CONSIDERATION: "Generating Application Summary",
+    }
+
+    NEW_STATUS_CHOICES = {
+        STATUS_DRAFT: "Draft",
+        STATUS_NEW: "Corrections Required in Intake",
+        STATUS_REJECT: "No Review Needed",
+        # STATUS_ANALYZE: "Submitted for review",
+        STATUS_ANALYZE_REQ: "Information Required",
+        # STATUS_ASSIGN_RESOURCE: "Resource assignment",
+        STATUS_SECURITY_ANALYZE: "Intake Verification",
+        STATUS_SECURITY_ANALYZE_SOL: "Incomplete Intake Form",
+        # STATUS_SIGNAL_VERIFICATION: "Intake and signal verification",
+        # STATUS_SIGNAL_VERIFICATION_SOL: "Incomplete Intake Form",
+        # STATUS_WALKTHROUGH: "Kick-off",
+        STATUS_WALKTHROUGH_DATA: "Information Provided",
+        # STATUS_ASSESSMENT: "Planning",
+        STATUS_TESTER: "Assessment in Progress",
+        STATUS_SAR_CREATION: "SAR Drafting in Progress",
+        STATUS_CLEARANCE: "Final GISG Leadership Review",
+        STATUS_COMB_IPG_TEMPLATE_REVIEW: "Corrections Required",
+        STATUS_HOLD: "On Hold",
+        STATUS_CONTINUOUS_MONITORING: "Continuous Monitoring",
+        STATUS_DRAFT_REOPENED: "Edit Intake",
+        STATUS_CANCEL: "Cancelled",
+        STATUS_DELETED: "Deleted",
+        STATUS_PROD_ONBOARDING: "Production Onboarding",
+        STATUS_RESET_TO_INTAKE: "Reset to Intake",
+        # STATUS_RESET_TO_VALIDATE: "Reset to Assessment Validate",
+        STATUS_REINITIATE_ASSESSMENT: "Reinitiate Assessment",
+    }
+
+    SUB_STATUS_FILTER_CHOICES = {
+        SUB_STATUS_SAR_TEMPLATE_PENDING: "Final SAR Drafted",
+        SUB_STATUS_CLEARANCE_SOLUTION_REJECT: "Not Approved to Publish",
+        SUB_STATUS_CLEARANCE_SOLUTION: "Pending Approval to Publish",
+        # SUB_STATUS_SAR_COMBINED_SEC_ANA: "Final SAR drafted",
+        SUB_STATUS_SAR_TEMPLATE_COMPLETED: "Security Review Complete",
+        SUB_STATUS_SAR_APPROVED_BY_REQUESTOR: "SAR Ready for Publication",
+        SUB_STATUS_SAR_COMBINED_REJECT: "Corrections Required",
+        SUB_STATUS_SAR_COMBINED_APPROVE: "Ready for Publication",
+        SUB_STATUS_AI_FAILED: "AI Evaluation Failed",
+        SUB_STATUS_AI_EVALUATION: "AI Evaluation in Progress",
+        SUB_STATUS_AI_COMPLETE: "AI Evaluation Completed",
+        SUB_STATUS_SECURITY_REVIEW: "Security Resource Review",
+        SUB_STATUS_SOL_TEAM_REVIEW: "Solution Team Review",
+        SUB_STATUS_LEADERSHIP_REVIEW: "Leadership Review",
+        SUB_STATUS_ISSUE_COMPLETED: "Findings Review Complete",
+        # SUB_STATUS_COMPLETED: "Findings review complete",
+        SUB_STATUS_REPORT: "SAR Published",
+        SUB_STATUS_REQ_ANALYZE: "Request Analysis in Progress",
+        SUB_STATUS_PULLING_TOOLDATA: "Pulling Data from Tools",
+        SUB_STATUS_DATA_PULL_COMPLETE: "Data Pull Complete",
+        SUB_STATUS_SEC_FINDINGS_VALID: "Assessment Under Validation",
+        SUB_STATUS_BUSINESS_CONSIDERATION: "Generating Application Summary",
+    }
+
+    DASHBOARD_STATUS_CHOICES = {
+        STATUS_DRAFT: "Not Started",
+        STATUS_NEW: "Not Started",
+        STATUS_ANALYZE: "Not Started",
+        STATUS_ANALYZE_REQ: "Not Started",
+        STATUS_ASSIGN_RESOURCE: "Not Started",
+        STATUS_SECURITY_ANALYZE: "Not Started",
+        STATUS_SECURITY_ANALYZE_SOL: "Not Started",
+        STATUS_SIGNAL_VERIFICATION: "Not Started",
+        STATUS_SIGNAL_VERIFICATION_SOL: "Not Started",
+        STATUS_WALKTHROUGH: "Not Started",
+        STATUS_WALKTHROUGH_DATA: "Not Started",
+        STATUS_ASSESSMENT: "In Progress",
+        STATUS_TESTER: "In Progress",
+        STATUS_SAR_CREATION: "In Progress",
+        STATUS_CLEARANCE: "In Progress",
+        STATUS_COMB_IPG_TEMPLATE_REVIEW: "In Progress",
+        STATUS_CONTINUOUS_MONITORING: "Completed",
+        STATUS_DRAFT_REOPENED: "Not Started",
+        STATUS_PROD_ONBOARDING: "QA Complete",
+        STATUS_HOLD: "On Hold",
+        STATUS_REJECT: "Not Required",
+        STATUS_CANCEL: "Not Required",
+        STATUS_DELETED: "Not Required",
+    }
+
+    STATUS_ARR_REACT = {
+        "Draft": STATUS_DRAFT,
+        "Corrections Required": STATUS_NEW,
+        "Deleted": STATUS_DELETED,
+        "No review needed": STATUS_REJECT,
+        "Submitted for review": STATUS_ANALYZE,
+        "Kick-off": STATUS_WALKTHROUGH,
+        "Information required": STATUS_ANALYZE_REQ,
+        "Information provided": STATUS_WALKTHROUGH_DATA,
+        "Planning": STATUS_ASSESSMENT,
+        "Assessment in progress": STATUS_TESTER,
+        "SAR drafting in progress": STATUS_SAR_CREATION,
+        "Final coordinator review": STATUS_SAR_COMBINED,
+        "Solution consultation": STATUS_SOLUTION_CONSULTATION,
+        "On hold": STATUS_HOLD,
+        "Resource assignment": STATUS_ASSIGN_RESOURCE,
+        "Pending approval to publish": STATUS_CLEARANCE_SOLUTION,
+        # "Corrections required": STATUS_SAR_COMBINED_REJECT,
+        "Ready for publication": STATUS_SAR_COMBINED_APPROVE,
+        "Not approved to publish": STATUS_CLEARANCE_SOLUTION_REJECT,
+        "Cancelled": STATUS_CANCEL,
+        "Intake Verification": STATUS_SECURITY_ANALYZE,
+        "Incomplete Intake Form": STATUS_SECURITY_ANALYZE_SOL,
+        "Draft Intake on Hold": STATUS_DRAFT_ON_HOLD,
+        "Final GISG Leadership review": STATUS_CLEARANCE,
+        "Final SAR drafted": SUB_STATUS_SAR_COMBINED_SEC_ANA,
+        "AI Evaluation in progress": SUB_STATUS_AI_EVALUATION,
+        "AI Evaluation completed": SUB_STATUS_AI_COMPLETE,
+        "Security resource review": SUB_STATUS_SECURITY_REVIEW,
+        "Solution team review": SUB_STATUS_SOL_TEAM_REVIEW,
+        "Leadership review": SUB_STATUS_LEADERSHIP_REVIEW,
+        "Accepted by Leadership": SUB_STATUS_LEADERSHIP_ACCEPT,
+        "Rejected by Leadership": SUB_STATUS_LEADERSHIP_REJECT,
+        "SAR published": SUB_STATUS_REPORT,
+    }
+    BUSINESS_FUNCTION_CHOICES = {
+        "Consulting": "Consulting",
+        "Deal Advisory": "Deal Advisory",
+        "Global Strategy Group": "Global Strategy Group",
+        "KPMG Spectrum": "KPMG Spectrum",
+        "Management Consulting": "Management Consulting",
+        "Risk Consulting": "Risk Consulting",
+        "Assets/Technology": "Assets/Technology",
+        "Assurance": "Assurance",
+        "Financial Statements Audit": "Financial Statements Audit",
+        "GISG": "GISG",
+        "Global Brand Management": "Global Brand Management",
+        "Global Business Enablement Services": "Global Business Enablement Services",
+        "Global Business Operations": "Global Business Operations",
+        "Global Collaboration & Knowledge": "Global Collaboration & Knowledge",
+        "Global Finance": "Global Finance",
+        "Global Learning & Development": "Global Learning & Development",
+        "Global Marketing & Communications": "Global Marketing & Communications",
+        "Global People Performance & Culture": "Global People Performance & Culture",
+        "Global Procurement": "Global Procurement",
+        "Global Quality & Risk Management": "Global Quality & Risk Management",
+        "IBS": "IBS",
+        "IOGC": "IOGC",
+        "ITS Global": "ITS Global",
+        "Cyber Security": "Cyber Security",
+        "Data & Analytics": "Data & Analytics",
+        "Digital Solution Hub": "Digital Solution Hub",
+        "Global Clients & Markets": "Global Clients & Markets",
+        "KPMG Lighthouse": "KPMG Lighthouse",
+        "Transformation": "Transformation",
+        "Asset Management": "Asset Management",
+        "Corporate Tax": "Corporate Tax",
+        "Deal Advisory, M&A Tax": "Deal Advisory, M&A Tax",
+        "Indirect Tax": "Indirect Tax",
+        "Individual & Employment Tax": "Individual & Employment Tax",
+        "International Tax Advisory (Corporate Taxes)": "International Tax Advisory (Corporate Taxes)",
+        "Legal Services": "Legal Services",
+        "Research & Development": "Research & Development",
+        "Transfer Pricing": "Transfer Pricing",
+    }
+    # BUSINESS_FUNCTION_CHOICES = {
+    #     "Global Audit & Assurance": "Global Audit & Assurance",
+    #     "Global Tax & Legal": "Global Tax & Legal",
+    #     "Global Advisory": "Global Advisory",
+    #     "Global Brand Management": "Global Brand Management",
+    #     "Global Business Operations": "Global Business Operations",
+    #     "Global Clients & Markets": "Global Clients & Markets",
+    #     "Global Collboration & Knowledge": "Global Collboration & Knowledge",
+    #     "Global Finance": "Global Finance",
+    #     "Global Learning & Development": "Global Learning & Development",
+    #     "Global Marketing & Communications": "Global Marketing & Communications",
+    #     "Global People": "Global People",
+    #     "Global Procurement": "Global Procurement",
+    #     "Global Quality & Risk": "Global Quality & Risk",
+    #     "Global Technology & Knowledge": "Global Technology & Knowledge",
+    #     "ITS Global": "ITS Global",
+    #     "Global Information Security Group": "Global Information Security Group",
+    #     "Business Enablement Services": "Business Enablement Services",
+    #     "Member Firm": "N/A- Member Firm",
+    # }
+
+    REVIEW_TYPE_CHOICES = {
+        1: "New",
+        2: "Major",
+        3: "Minor",
+    }
+
+    FETCH_DATA_CHOICES = (
+        (1, "Yes"),
+        (2, "No"),
+        (3, "NA"),
+    )
+    FETCH_STRING_TO_VALUE = {
+        "Yes": 1,
+        "No": 2,
+        "NA": 3,
+    }
+
+    EXCLUDE_STATUS_CHOICES = {
+        STATUS_DELETED: "Deleted",
+        STATUS_REJECT: "No review needed",
+        STATUS_CANCEL: "Cancelled",
+        STATUS_DRAFT: "Draft",
+        STATUS_HOLD: "On hold",
+        # STATUS_DRAFT_ON_HOLD: "Draft Intake on Hold",
+        # STATUS_SOLUTION_CONSULTATION: "Solution consultation",
+    }
+
+    REVIEW_TYPE_NEW = 1
+    REVIEW_TYPE_MAJOR = 2
+    REVIEW_TYPE_MINOR = 3
+
+    SOLUTION_TYPE_NON_SAAS = 1
+    SOLUTION_TYPE_SAAS = 2
+    SOLUTION_TYPE_SAAS_PLUS = 3
+
+    SOLUTION_TYPE_CHOICES = {
+        SOLUTION_TYPE_NON_SAAS: "KPMG Hosted",
+        SOLUTION_TYPE_SAAS: "SaaS",
+        SOLUTION_TYPE_SAAS_PLUS: "SaaS Plus",
+    }
+
+    ACTION_PENDING_CHOICES = {
+        USER_TYPE_RQ: "Solution Team",
+        USER_TYPE_SS: "Coordinator",
+        USER_TYPE_TL: "Security Resource",
+        USER_TYPE_SECURITY_OFFICER: "GISG Leadership",
+    }
+
+    sgp_id = models.CharField(primary_key=True, max_length=50, editable=False)
+    status: int = models.IntegerField(default=STATUS_DRAFT)  # type: ignore
+    sub_status = models.IntegerField(null=True, blank=True)
+    created_on: datetime | None = models.DateTimeField(  # type: ignore
+        auto_now_add=True, null=True, blank=True
+    )
+    updated_on: datetime | None = models.DateTimeField(  # type: ignore
+        auto_now=True, null=True, blank=True
+    )
+    request_type = models.IntegerField(default=REQUEST_TYPE_COMPOSITE)
+    request_owner: UserData | None = models.ForeignKey(  # type: ignore
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        db_column="request_owner",
+        to_field="id",
+    )
+    project_name = models.CharField(max_length=200, null=True, blank=True)
+    project_alias = models.CharField(max_length=500, null=True, blank=True)
+    solution_name = models.CharField(max_length=200, null=True, blank=True)
+    family_id = models.CharField(max_length=200, null=True, blank=True)
+    apm_solution_id = models.CharField(max_length=200, null=True, blank=True)
+    apm_solution_id_prod = models.CharField(max_length=200, null=True, blank=True)
+    business_lead: str | None = models.CharField(max_length=100, null=True, blank=True)  # type: ignore
+    its_arch: str | None = models.CharField(max_length=300, null=True, blank=True)  # type: ignore
+    its_arch_first_name = models.CharField(max_length=200, null=True, blank=True)
+    its_arch_last_name = models.CharField(max_length=200, null=True, blank=True)
+    go_live_date: datetime | None = models.DateField(null=True, blank=True)  # type: ignore
+    expiration_date = models.DateField(null=True, blank=True)
+    coding_complete_date: datetime | None = models.DateField(null=True, blank=True)  # type: ignore
+    expected_sub_date: datetime | None = models.DateField(null=True, blank=True)  # type: ignore
+    application_retire_date = models.DateField(null=True, blank=True)
+    sec_ana_date = models.DateField(null=True, blank=True)
+    demo_date = models.DateField(null=True, blank=True)
+    pen_test_demo_date = models.DateField(null=True, blank=True)
+    sec_res_start_date = models.DateField(null=True, blank=True)
+    sec_res_end_date = models.DateField(null=True, blank=True)
+    draft_delivery_date = models.DateField(null=True, blank=True)
+    charge_code = models.CharField(max_length=200, null=True, blank=True)
+    project_manager: str | None = models.CharField(  # type: ignore
+        max_length=200, null=True, blank=True
+    )
+    spoc_email_id = models.CharField(max_length=200, null=True, blank=True)
+    walkthrough_comments = models.TextField(null=True, blank=True)
+    walkthrough_action = models.CharField(max_length=45, null=True, blank=True)
+    walkthrough_requestor_comments = models.TextField(null=True, blank=True)
+    walkthrough_requestor_upload = models.TextField(null=True, blank=True)
+    walkthrough_upload = models.TextField(null=True, blank=True)
+    sar_ato_email_date: datetime | None = models.DateField(null=True, blank=True)  # type: ignore
+    walkthrough_date = models.DateField(null=True, blank=True)
+    analyze_comments = models.TextField(null=True, blank=True)
+    additional_comments = models.TextField(null=True, blank=True)
+    project_manager_first_name = models.CharField(max_length=200, null=True, blank=True)
+    project_manager_last_name = models.CharField(max_length=200, null=True, blank=True)
+    business_sponsor_first_name = models.CharField(
+        max_length=200, null=True, blank=True
+    )
+    business_sponsor_last_name = models.CharField(max_length=200, null=True, blank=True)
+    business_lead_first_name = models.CharField(max_length=200, null=True, blank=True)
+    business_lead_last_name = models.CharField(max_length=200, null=True, blank=True)
+    pre_status = models.IntegerField(null=True, blank=True)
+    bussiness_sponser: str | None = models.CharField(  # type: ignore
+        max_length=200, null=True, blank=True
+    )
+    review_type = models.IntegerField(null=True, blank=True, default=REVIEW_TYPE_NEW)
+    solution_type = models.IntegerField(null=True, blank=True, default=2)
+    overall_risk = models.CharField(max_length=10, null=True, blank=True)
+    non_prod_env_status = models.CharField(max_length=5, null=True, blank=True)
+    non_prod_env_comment = models.TextField(null=True, blank=True)
+    fod_setup_status = models.CharField(max_length=5, null=True, blank=True)
+    fod_setup_comment = models.TextField(null=True, blank=True)
+    template_clone_sgp_id = models.CharField(max_length=50, null=True, blank=True)
+    sar_version = models.IntegerField(default=2, null=True, blank=True)
+    sar_type = models.IntegerField(default=1, null=True, blank=True)
+    sar_status = models.IntegerField(default=SAR_NOT_CREATED)
+    first_publish_date = models.DateTimeField(null=True, blank=True)
+    last_publish_date = models.DateTimeField(null=True, blank=True)
+    cycle_number = models.PositiveIntegerField(default=1)
+    
+    # GHAS
+    ghas_org_name = models.TextField(null=True, blank=True, default="NA")
+    ghas_repo_names = models.TextField(null=True, blank=True, default="NA")
+    ghas_scan_type = models.CharField(max_length=50,null=True, blank=True, default="NA")
+    ghas_org_name_prod = models.TextField(null=True, blank=True, default="NA")
+    ghas_repo_names_prod = models.TextField(null=True, blank=True, default="NA")
+    ghas_scan_type_prod = models.CharField(max_length=50,null=True, blank=True, default="NA")
+    # FOD
+    release_id = models.TextField(null=True, blank=True, default="NA")
+    release_id_prod = models.TextField(null=True, blank=True, default="NA")
+    # CSPM
+    tenant_id = models.TextField(null=True, blank=True, default="NA")
+    subscription_id = models.TextField(null=True, blank=True, default="NA")
+    resource_group = models.TextField(null=True, blank=True, default="NA")
+    tenant_id_prod = models.TextField(null=True, blank=True, default="NA")
+    subscription_id_prod = models.TextField(null=True, blank=True, default="NA")
+    resource_group_prod = models.TextField(null=True, blank=True, default="NA")
+    # Mendio
+    mend_product_name = models.TextField(null=True, blank=True, default="NA")
+    mend_project_names = models.TextField(blank=True, null=True, default="NA")
+    mend_project_tokens = models.TextField(blank=True, null=True, default="NA")
+    mend_product_name_prod = models.TextField(null=True, blank=True, default="NA")
+    mend_project_names_prod = models.TextField(blank=True, null=True, default="NA")
+    mend_project_tokens_prod = models.TextField(blank=True, null=True, default="NA")
+
+    assigned_security_id = models.CharField(max_length=255, null=True, blank=True)
+    assigned_security_name = models.CharField(max_length=255, null=True, blank=True)
+    assigned_leadership_id = models.CharField(max_length=255, null=True, blank=True)
+    assigned_leadership_name = models.CharField(max_length=255, null=True, blank=True)
+    overall_security_comments = models.TextField(null=True, blank=True)
+    overall_requestor_comments = models.TextField(null=True, blank=True)
+    overall_leadership_comments = models.TextField(null=True, blank=True)
+
+    ai_risk_level = models.IntegerField(null=True, blank=True, default=1)
+    ai_risk_justification = models.TextField(null=True, blank=True)
+
+    ato_status = models.IntegerField(null=True, blank=True, default=ATO_PROVISIONAL)
+
+    fetch_qualys = models.PositiveSmallIntegerField(
+        choices=FETCH_DATA_CHOICES, default=3
+    )
+    fetch_qualys_prod = models.PositiveSmallIntegerField(
+        choices=FETCH_DATA_CHOICES, default=3
+    )
+    fetch_mendio = models.PositiveSmallIntegerField(
+        choices=FETCH_DATA_CHOICES,
+        default=3,
+    )
+    fetch_mendio_prod = models.PositiveSmallIntegerField(
+        choices=FETCH_DATA_CHOICES,
+        default=3,
+    )
+    fetch_ghas = models.PositiveSmallIntegerField(
+        choices=FETCH_DATA_CHOICES,
+        default=3,
+    )
+    fetch_ghas_prod = models.PositiveSmallIntegerField(
+        choices=FETCH_DATA_CHOICES,
+        default=3,
+    )
+    fetch_fod = models.PositiveSmallIntegerField(
+        choices=FETCH_DATA_CHOICES,
+        default=3,
+    )
+    fetch_fod_prod = models.PositiveSmallIntegerField(
+        choices=FETCH_DATA_CHOICES,
+        default=3,
+    )
+    fetch_cspm = models.PositiveSmallIntegerField(
+        choices=FETCH_DATA_CHOICES,
+        default=3,
+    )
+    fetch_cspm_prod = models.PositiveSmallIntegerField(
+        choices=FETCH_DATA_CHOICES,
+        default=3,
     )
 
-    decoded_html = (
-        unescape(html_content)
-        if was_html_encoded
-        else html_content
+    delegate_users = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        through="RequestDelegation",
+        related_name="delegated_requests",
+        blank=True,
     )
 
-    soup = BeautifulSoup(
-        decoded_html,
-        "html.parser",
+    prod_onboarding_done = models.BooleanField(default=False)
+
+    skip_ai = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = "application_requests"
+
+    @property
+    def get_status_string(self):
+        return self.STATUS_CHOICES.get(self.status, "Unknown")
+
+    def get_status_display(self):
+        return self.STATUS_CHOICES.get(self.status, "Unknown")
+
+    def get_sub_status_display(self):
+        return self.STATUS_CHOICES.get(self.sub_status, "-")  # type: ignore
+
+    def get_review_type_score_display(self):
+        return [self.REVIEW_TYPE_CHOICES]
+
+    def get_review_type_display(self):
+        return self.REVIEW_TYPE_CHOICES.get(self.review_type, "-")  # type: ignore
+
+    def get_ato_status_display(self):
+        return self.ATO_STATUS_CHOICES.get(self.ato_status, "-")  # type: ignore
+
+    def get_ato_status_request_list(self):
+        if self.sar_status == RequestorTeam.SAR_CREATED:
+            return self.ATO_STATUS_CHOICES.get(self.ato_status, "-")  # type: ignore
+        else:
+            return "-"
+
+    def get_review_type_as_string(self):
+        result = ""
+        if self.review_type:
+            result = self.REVIEW_TYPE_CHOICES[self.review_type]
+        return result
+
+    def get_dash_board_status_new_list_as_string(self):
+        result = self.DASHBOARD_STATUS_CHOICES.get(self.status, "-")
+        return result
+
+    def get_solution_type_string(self):
+        return self.SOLUTION_TYPE_CHOICES.get(self.solution_type, "-")  # type: ignore
+
+    @classmethod
+    def get_status_as_string_by_id(cls, status_id):
+        return cls.STATUS_CHOICES.get(status_id, "-")
+
+    @classmethod
+    def get_review_type_list(cls):
+        return cls.REVIEW_TYPE_CHOICES
+
+    @classmethod
+    def get_rev_go_live_rea_list(cls):
+        return cls.REV_GO_LIVE_REASON_CHOICES
+
+    @classmethod
+    def get_ato_status_as_string(cls, status_id):
+        return cls.ATO_STATUS_CHOICES.get(status_id, "-")
+
+    def get_assigned_security_users(self):
+        from django.contrib.auth import get_user_model
+
+        UserModel = get_user_model()
+
+        if not self.assigned_security_id:
+            return UserModel.objects.none()
+
+        ids = [
+            uid.strip() for uid in self.assigned_security_id.split(",") if uid.strip()
+        ]
+        return UserModel.objects.filter(id__in=ids)
+
+    def get_assigned_leadership_users(self):
+
+        from django.contrib.auth import get_user_model
+
+        UserModel = get_user_model()
+
+        if not self.assigned_leadership_id:
+            return UserModel.objects.none()
+
+        ids = [
+            uid.strip() for uid in self.assigned_leadership_id.split(",") if uid.strip()
+        ]
+        return UserModel.objects.filter(id__in=ids)
+
+    def set_assigned_security_users(self, user_ids):
+        from django.contrib.auth import get_user_model
+
+        UserModel = get_user_model()
+
+        if not user_ids:
+            self.assigned_security_id = None
+            self.assigned_security_name = None
+            return
+
+        clean_ids = [str(uid).strip() for uid in user_ids if str(uid).strip()]
+
+        if not clean_ids:
+            self.assigned_security_id = None
+            self.assigned_security_name = None
+            return
+
+        user_map = {str(u.id): u for u in UserModel.objects.filter(id__in=clean_ids)}  # type: ignore
+
+        resolved_ids = []
+        resolved_names = []
+        for uid in clean_ids:
+            user = user_map.get(uid)
+            if user:
+                resolved_ids.append(str(user.id))  # type: ignore
+                resolved_names.append(user.get_full_name())  # type: ignore
+
+        self.assigned_security_id = ",".join(resolved_ids) or None
+        self.assigned_security_name = ",".join(resolved_names) or None
+
+    def set_assigned_leadership_users(self, user_ids):
+        from django.contrib.auth import get_user_model
+
+        UserModel = get_user_model()
+
+        if not user_ids:
+            self.assigned_leadership_id = None
+            self.assigned_leadership_name = None
+            return
+
+        clean_ids = [str(uid).strip() for uid in user_ids if str(uid).strip()]
+        if not clean_ids:
+            self.assigned_leadership_id = None
+            self.assigned_leadership_name = None
+            return
+
+        user_map = {str(u.id): u for u in UserModel.objects.filter(id__in=clean_ids)}  # type: ignore
+
+        resolved_ids, resolved_names = [], []
+        for uid in clean_ids:
+            u = user_map.get(uid)
+            if u:
+                resolved_ids.append(str(u.id))  # type: ignore
+                resolved_names.append(u.get_full_name())  # type: ignore
+
+        self.assigned_leadership_id = ",".join(resolved_ids) or None
+        self.assigned_leadership_name = ",".join(resolved_names) or None
+
+from rest_framework import serializers
+
+from app.models import LogUpdate
+
+
+class LogUpdateSerializer(serializers.ModelSerializer):
+    event_string = serializers.SerializerMethodField()
+    created_by_name = serializers.CharField(
+        source="created_by.get_full_name", read_only=True, default=""
     )
+    old_value_str = serializers.SerializerMethodField()
+    new_value_str = serializers.SerializerMethodField()
+    created_date = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
 
-    description_element = soup.find("h5")
+    class Meta:
+        model = LogUpdate
+        fields = [
+            "id",
+            "event",
+            "old_value",
+            "new_value",
+            "response_for",
+            "created_date",
+            "event_string",
+            "created_by_name",
+            "user_role",
+            "old_value_str",
+            "new_value_str",
+        ]
 
-    if description_element is None:
-        raise ValueError(
-            "Could not find the header_2 description element: h5"
-        )
+    def get_event_string(self, obj):
+        return obj.event_string
 
-    description_element.clear()
+    def get_old_value_str(self, obj):
+        return obj.old_value_str
 
-    paragraphs = [
-        paragraph.strip()
-        for paragraph in description.split("\n\n")
-        if paragraph.strip()
-    ]
-
-    for index, paragraph in enumerate(paragraphs):
-        description_element.append(paragraph)
-
-        if index < len(paragraphs) - 1:
-            description_element.append(
-                soup.new_tag("br")
-            )
-            description_element.append(
-                soup.new_tag("br")
-            )
-
-    rendered_html = str(soup)
-
-    if was_html_encoded:
-        return escape(
-            rendered_html,
-            quote=False,
-        )
-
-    return rendered_html
+    def get_new_value_str(self, obj):
+        return obj.new_value_str
 
 
 
-<div id="header_2_1"><div style="max-width:83%!important;margin-left:auto;margin-right:auto;">
-                <div id="header_2_1_img_show">
-                    
-                <img class="architecture_img" src="https://xyz.shg.abc.com/api/storage/serve-architecture-files/937755/178575945911_diagram.png/" style="width:100%; display: block; margin-left: auto; margin-right: auto;"><br>Figure 1 depicts the logical architecture of Adobe Workfront, highlighting secure client access via enterprise integrations into Adobe-managed application services. At its core, the platform delivers workflow orchestration, project planning, collaboration, reporting, event notifications, and administrative controls. These services interact with encrypted persistence layers and external enterprise systems exclusively over authenticated APIs. The design enforces a strict separation between the customer-facing access tier, Adobe-managed application services, and backend data services, all contained within the SaaS provider’s secure boundary.</div>
-            </div></div>
+

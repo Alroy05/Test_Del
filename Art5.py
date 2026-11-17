@@ -26,8 +26,7 @@ interface DataTableProps {
     dropdownRef: RefObject<HTMLDivElement | null>;
     setError: (error: string) => void;
     hidePagination?: boolean;
-    /** Rows scroll inside an area that keeps its height however few rows there are
-     *  (560px, or taller when the screen is tall enough) and the header row stays visible */
+    /** Rows scroll inside a 560px area (taller on screens 1920px and wider) and the header row stays visible */
     stickyHeader?: boolean;
     sortColumn?: string;
     sortOrder?: "asc" | "desc";
@@ -86,7 +85,7 @@ export default function DataTable({
 
     return (
         <div className="flex flex-col flex-1 bg-white dark:bg-[#121831] border border-[#E6E9F2] dark:border-[#232B45] shadow-sm overflow-hidden rounded-b-2xl">
-            <div className={`overflow-x-auto ${stickyHeader ? "h-[max(560px,calc(100vh-26rem))] overflow-y-auto" : ""}`}>
+            <div className={`overflow-x-auto ${stickyHeader ? "max-h-[560px] min-[1920px]:max-h-[max(560px,calc(100vh-26rem))] overflow-y-auto" : ""}`}>
                 <table className="w-full table-fixed border-collapse">
                     <colgroup>
                         {columns.map((col, index) => (

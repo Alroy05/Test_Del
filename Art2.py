@@ -580,7 +580,9 @@ const RequestorArtifactory = () => {
     <div className="bg-white">
       <Breadcrumbs items={breadcrumbs} />
 
-      <div className="flex-1 overflow-y-auto p-3 bg-white dark:bg-slate-950">
+      {/* min height: the white area reaches the bottom of the screen even when the table is short,
+          so the filter dropdown never hangs below it (8.5rem = app bar + breadcrumbs above) */}
+      <div className="flex-1 overflow-y-auto p-3 min-h-[calc(100vh-8.5rem)] bg-white dark:bg-slate-950">
         {isLoading && <LoadingOverlay />}
 
         <div className="max-w-[1400px] min-[1920px]:max-w-none mx-auto space-y-3 pb-20">

@@ -10,7 +10,7 @@ import LoadingOverlay from "@/components/LoadingOverlay";
 import { callBackend, callBackendFormData, forceDownload, downloadFile, downloadPdfFile, formatDateTime, actionBtn } from "@/lib/helpers";
 import { customStyles, darkModeStyles } from "@/lib/styles";
 import { toast } from "react-hot-toast";
-import { Check, ChevronDown, ChevronUp, Download, FileText, Filter, Fingerprint, History, LucideRotateCcw, Mail, MessageSquare, RotateCcwClock, RotateCcwSquare, Signal, Sparkles, Tag, UserPlus } from "lucide-react";
+import { ArrowLeftRight, Calendar, Check, ChevronDown, ChevronUp, ClipboardList, Download, FileText, Filter, GitBranch, History, ListChecks, LucideRotateCcw, Mail, MessageSquare, RefreshCw, Reply, RotateCcw, RotateCcwClock, RotateCcwSquare, ShieldAlert, ShieldCheck, Signal, Sparkles, Tag } from "lucide-react";
 import TitleBar from "@/components/TitleBar";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { Rotate90DegreesCcwRounded } from "@mui/icons-material";
@@ -29,20 +29,82 @@ const fileLinkCls =
 const cellActionCls =
   "inline-flex items-center gap-[5px] whitespace-nowrap cursor-pointer text-[0.923em] font-semibold text-[#1E3A8A] dark:text-[#7DA2FF] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3B6CF6] rounded";
 
-/* log type pill: [icon, colours] */
-const TYPE_PILLS: Record<string, [React.ElementType, string]> = {
-  Status: [Signal, "text-[#2563EB] bg-[#2563EB]/11 dark:text-[#8DB0FF] dark:bg-[#8DB0FF]/14"],
-  AI: [Sparkles, "text-[#7C3AED] bg-[#7C3AED]/11 dark:text-[#A78BFA] dark:bg-[#A78BFA]/14"],
-  Comment: [MessageSquare, "text-[#0E7490] bg-[#0E7490]/11 dark:text-[#22D3EE] dark:bg-[#22D3EE]/14"],
-  Comments: [MessageSquare, "text-[#0E7490] bg-[#0E7490]/11 dark:text-[#22D3EE] dark:bg-[#22D3EE]/14"],
-  Email: [Mail, "text-[#B45309] bg-[#B45309]/11 dark:text-[#FBBF24] dark:bg-[#FBBF24]/14"],
-  Identifiers: [Fingerprint, "text-[#059669] bg-[#059669]/11 dark:text-[#34D399] dark:bg-[#34D399]/14"],
-  Delegate: [UserPlus, "text-[#BE185D] bg-[#BE185D]/11 dark:text-[#F472B6] dark:bg-[#F472B6]/14"],
-  Documents: [FileText, "text-[#475569] bg-[#475569]/11 dark:text-[#A3AEC8] dark:bg-[#A3AEC8]/14"],
-  Artifacts: [FileText, "text-[#475569] bg-[#475569]/11 dark:text-[#A3AEC8] dark:bg-[#A3AEC8]/14"],
+/* Links inside HTML that comes from the API (email bodies etc.) */
+const htmlCls = "[&_a]:underline [&_a]:[overflow-wrap:anywhere] [&_a]:text-[#1E3A8A] dark:[&_a]:text-[#7DA2FF]";
+
+/* The API sends null, "" or "-" when there is nothing to show */
+const isBlank = (value: any) => value == null || value === "" || value === "-";
+
+/* Internal keys such as "request_sub_status" read as "Request sub status" */
+const formatResponseFor = (value: any) =>
+  typeof value === "string" && /^[a-z0-9]+(_[a-z0-9]+)+$/.test(value)
+    ? value.charAt(0).toUpperCase() + value.slice(1).replace(/_/g, " ")
+    : value;
+
+/* Log type pills. Keys are the event names from logEventList, in lower case. */
+const TONES = {
+  blue: "text-[#2563EB] bg-[#2563EB]/11 dark:text-[#8DB0FF] dark:bg-[#8DB0FF]/14",
+  violet: "text-[#7C3AED] bg-[#7C3AED]/11 dark:text-[#A78BFA] dark:bg-[#A78BFA]/14",
+  cyan: "text-[#0E7490] bg-[#0E7490]/11 dark:text-[#22D3EE] dark:bg-[#22D3EE]/14",
+  amber: "text-[#B45309] bg-[#B45309]/11 dark:text-[#FBBF24] dark:bg-[#FBBF24]/14",
+  green: "text-[#047857] bg-[#047857]/11 dark:text-[#34D399] dark:bg-[#34D399]/14",
+  pink: "text-[#BE185D] bg-[#BE185D]/11 dark:text-[#F472B6] dark:bg-[#F472B6]/14",
+  indigo: "text-[#4338CA] bg-[#4338CA]/11 dark:text-[#A5B4FC] dark:bg-[#A5B4FC]/14",
+  teal: "text-[#0F766E] bg-[#0F766E]/11 dark:text-[#2DD4BF] dark:bg-[#2DD4BF]/14",
+  red: "text-[#DC2626] bg-[#DC2626]/11 dark:text-[#F87171] dark:bg-[#F87171]/14",
+  orange: "text-[#C2410C] bg-[#C2410C]/11 dark:text-[#FB923C] dark:bg-[#FB923C]/14",
+  sky: "text-[#0369A1] bg-[#0369A1]/11 dark:text-[#38BDF8] dark:bg-[#38BDF8]/14",
+  slate: "text-[#475569] bg-[#475569]/11 dark:text-[#A3AEC8] dark:bg-[#A3AEC8]/14",
 };
-const DEFAULT_TYPE_PILL: [React.ElementType, string] =
-  [Tag, "text-[#475569] bg-[#475569]/11 dark:text-[#A3AEC8] dark:bg-[#A3AEC8]/14"];
+const TYPE_PILLS: Record<string, [React.ElementType, string]> = {
+  "status": [Signal, TONES.blue],
+  "comment": [MessageSquare, TONES.cyan],
+  "coordinator comments": [MessageSquare, TONES.cyan],
+  "security resource comments": [MessageSquare, TONES.cyan],
+  "artifacts": [FileText, TONES.slate],
+  "email": [Mail, TONES.amber],
+  "intake form data": [ClipboardList, TONES.indigo],
+  "date change": [Calendar, TONES.sky],
+  "response provided": [Reply, TONES.green],
+  "checklist update": [ListChecks, TONES.teal],
+  "ai": [Sparkles, TONES.violet],
+  "ato status event": [ShieldCheck, TONES.pink],
+  "findings": [ShieldAlert, TONES.red],
+  "ado": [GitBranch, TONES.sky],
+  "reset intake": [RotateCcw, TONES.orange],
+  "reset review": [RotateCcw, TONES.orange],
+  "change solution type": [ArrowLeftRight, TONES.indigo],
+  "re-initiate assessment": [RefreshCw, TONES.orange],
+};
+const DEFAULT_TYPE_PILL: [React.ElementType, string] = [Tag, TONES.slate];
+
+/* Long labels are split into two lines of similar length so the pill hugs its text */
+const splitLabel = (label: string): string[] => {
+  if (label.length <= 17) return [label];
+  const middle = label.length / 2;
+  let cut = -1;
+  for (let i = label.indexOf(" "); i !== -1; i = label.indexOf(" ", i + 1)) {
+    if (cut === -1 || Math.abs(i - middle) < Math.abs(cut - middle)) cut = i;
+  }
+  return cut === -1 ? [label] : [label.slice(0, cut), label.slice(cut + 1)];
+};
+
+const TypePill = ({ value }: { value: any }) => {
+  if (isBlank(value)) return <span className={faintCls}>-</span>;
+  const label = String(value).trim();
+  const [Icon, tone] = TYPE_PILLS[label.toLowerCase()] ?? DEFAULT_TYPE_PILL;
+
+  return (
+    <span className={`inline-flex items-start gap-1.5 max-w-full px-[9px] py-[3px] rounded-[1.1em] text-[0.885em] leading-snug font-semibold ${tone}`}>
+      <Icon className="size-[0.95em] shrink-0 mt-[0.2em]" />
+      <span className="min-w-0 break-words">
+        {splitLabel(label).map((line, index) => (
+          <span key={index} className="block">{line}</span>
+        ))}
+      </span>
+    </span>
+  );
+};
 
 /* Log type filter: react-select styled as the design's pill dropdown */
 const logTypeSelectStyles = (dark: boolean): any => {
@@ -203,7 +265,7 @@ const UpdateCell = ({ row, requestId }: { row: any; requestId: string }) => {
       <div>
         <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(preview) }} />
         {isExpanded && (
-          <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(extra) }} />
+          <div className={htmlCls} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(extra) }} />
         )}
         <div className="flex items-center gap-[14px] mt-1.5">
           <button
@@ -296,7 +358,7 @@ const UpdateCell = ({ row, requestId }: { row: any; requestId: string }) => {
     );
   }
 
-  return <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(row.new_value_str) }} />;
+  return <div className={htmlCls} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(row.new_value_str) }} />;
 };
 
 const RequestorArtifactory = () => {
@@ -422,26 +484,27 @@ const RequestorArtifactory = () => {
     {
       key: "created_by_name",
       label: "Name",
-      width: "w-36",
-      render: (value: any) => (
-        <span className="font-semibold">{value ?? "-"}</span>
-      ),
+      width: "w-34",
+      render: (value: any) =>
+        isBlank(value) ? <span className={faintCls}>-</span> : <span className="font-semibold">{value}</span>,
     },
     {
       key: "response_for",
       label: "Response For",
       width: "w-40",
+      render: (value: any) =>
+        isBlank(value) ? <span className={faintCls}>-</span> : <>{formatResponseFor(value)}</>,
     },
     {
       key: "new_value_str",
       label: "Update",
-      width: "w-94",
+      width: "w-96",
       render: (_: any, row: any) => <UpdateCell row={row} requestId={requestId} />,
     },
     {
       key: "old_value_str",
       label: "Old Data",
-      width: "w-40",
+      width: "w-38",
       render: (value: any, row: any) =>
         row.event == 10 ? (
           <div className={mutedCls}>
@@ -450,9 +513,9 @@ const RequestorArtifactory = () => {
               requestId={requestId}
             />
           </div>
-        ) : value != null && value !== "" ? (
+        ) : !isBlank(value) ? (
           <div
-            className={mutedCls}
+            className={`${mutedCls} ${htmlCls}`}
             dangerouslySetInnerHTML={{
               __html: DOMPurify.sanitize(value ?? ""),
             }}
@@ -469,24 +532,15 @@ const RequestorArtifactory = () => {
     {
       key: "event_string",
       label: "Type",
-      width: "w-36",
-      render: (value: any) => {
-        if (value == null || value === "") return <span className={faintCls}>-</span>;
-        const [Icon, pillCls] = TYPE_PILLS[value] ?? DEFAULT_TYPE_PILL;
-        return (
-          <span className={`inline-flex items-start gap-1.5 max-w-full px-[9px] py-[3px] rounded-[1.1em] text-[0.885em] leading-snug font-semibold ${pillCls}`}>
-            <Icon className="size-[0.95em] shrink-0 mt-[0.2em]" />
-            <span className="min-w-0 break-words">{value}</span>
-          </span>
-        );
-      },
+      width: "w-46",
+      render: (value: any) => <TypePill value={value} />,
     },
     {
       key: "user_role",
       label: "User Role",
       width: "w-32",
       render: (value: any) => (
-        <span className={`text-[0.96em] ${mutedCls}`}>{value ?? "-"}</span>
+        <span className={`text-[0.96em] ${isBlank(value) ? faintCls : mutedCls}`}>{isBlank(value) ? "-" : value}</span>
       ),
     },
   ], [requestId]);

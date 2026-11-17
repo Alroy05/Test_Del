@@ -1,415 +1,447 @@
-from django.db import models
-from django.conf import settings
+class RequestorArtifactoryAPIView(APIView):
+    def post(self, request):
+        user, user_type, decoded = get_user(request)
+        if isinstance(user, Response):
+            return user
+        from datetime import timezone
+        from django.utils.dateparse import parse_datetime
+        from django.utils import timezone as django_timezone
 
+        sgp_id = request.data.get("sgpId")
+        event_filter_status = request.data.get("eventFilterStatus")
+        event_filter = (
+            request.data.getlist("eventFilter")
+            if hasattr(request.data, "getlist")
+            else request.data.get("eventFilter", [])
+        )
 
-class HighLevelData(models.Model):
-    id = models.AutoField(primary_key=True)
-    header_data = models.TextField(null=True, blank=True)
-    request = models.ForeignKey(
-        "RequestorTeam",
-        on_delete=models.CASCADE,
-        db_column="sgp_id",
-        to_field="sgp_id",
-        related_name="high_level_data",
-        null=True,
-        blank=True,
-    )
-    comment = models.TextField(null=True, blank=True)
-    created_date = models.DateTimeField(auto_now_add=True)
-    is_active = models.IntegerField(default=1, db_index=True)
+        if user_type in [
+            Role.ROLE_TYPE_RQ,
+        ]:
+            return Response(
+                {
+                    "status": False,
+                    "display_message": True,
+                    "message": settings.ERRORS["unauth_access"],
+                    "errors": settings.ERRORS["unauth_access"],
+                    "data": [],
+                },
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
 
-    class Meta:
-        db_table = "high_level_data"
-        indexes = [
-            models.Index(fields=["request", "is_active"]),
-            models.Index(
-                fields=[
-                    "request",
-                    "is_active",
-                    "-created_date",
-                ]
-            ),
+        if not sgp_id or not str(sgp_id).isdigit():
+            return Response(
+                {
+                    "status": False,
+                    "message": "There are incorrect values in the form",
+                    "errors": {
+                        "sgpId": ["The sgpId field is required and must be numeric."]
+                    },
+                    "display_message": False,
+                    "data": [],
+                },
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+
+        if event_filter_status not in ["Yes", "No"]:
+            return Response(
+                {
+                    "status": False,
+                    "message": "There are incorrect values in the form",
+                    "errors": {
+                        "eventFilterStatus": [
+                            "The eventFilterStatus must be Yes or No."
+                        ]
+                    },
+                    "display_message": False,
+                    "data": [],
+                },
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+
+        valid_events = [
+            LogUpdate.STATUS_EVENT,
+            LogUpdate.COMMENTS_EVENT,
+            LogUpdate.DOC_EVENT,
+            LogUpdate.EMAIL_EVENT,
+            LogUpdate.INTAKE_EVENT,
+            LogUpdate.DATE_EVENT,
+            LogUpdate.RESP_EVENT,
+            LogUpdate.ANALYZE_EVENT,
+            LogUpdate.SEC_ANALYZE_EVENT,
+            LogUpdate.ARTIFACT_EVENT,
+            LogUpdate.AI_EVENT,
+            LogUpdate.ATO_STATUS_EVENT,
+            LogUpdate.RESET_INTAKE_EVENT,
+            LogUpdate.RESET_REVIEW_EVENT,
+            LogUpdate.CHANGE_SOLUTION_TYPE_EVENT,
+            LogUpdate.RES_ASS_EVENT
         ]
+        if event_filter_status == "Yes":
+            if not event_filter:
+                return Response(
+                    {
+                        "status": False,
+                        "message": "There are incorrect values in the form",
+                        "errors": {
+                            "eventFilter": [
+                                "The eventFilter field is required when eventFilterStatus is Yes."
+                            ]
+                        },
+                        "display_message": False,
+                        "data": [],
+                    },
+                    status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                )
 
-    def get_processed_header_data(self):
-        if not self.header_data:
-            return self.header_data
-        app_url = settings.DOMAIN_URL
-        value = self.header_data
-        replacements = {
-            "/kpmgivtm/public/img/first_page_side.png": f"{app_url}/backend/img/first_page_side.png",
-            "/kpmgivtm/public/img/first_page_sar.png": f"{app_url}/backend/img/first_page_sar.jpg",
-            "/kpmgivtm/public/img/first_page_sar.jpg": f"{app_url}/backend/img/first_page_sar.jpg",
-            "https://abc.kworld.abc.com/abcivtm/public/storage/result_storage/architecture_img": f"{app_url}/backend/result_storage/architecture_img",
-            "/kpmgivtm/public/storage/result_storage/architecture_img": f"{app_url}/backend/result_storage/architecture_img",
-            "/kpmgivtm/public/img/logo_new.png": f"{app_url}/backend/img/logo_new.png",
-        }
-        for old_path, new_path in replacements.items():
-            value = value.replace(old_path, new_path)
-        return value
+            for event in event_filter:
+                try:
+                    event_int = int(event)
+                    if event_int not in valid_events:
+                        return Response(
+                            {
+                                "status": False,
+                                "message": "There are incorrect values in the form",
+                                "errors": {
+                                    "eventFilter": ["The selected filter is invalid"]
+                                },
+                                "display_message": False,
+                                "data": [],
+                            },
+                            status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                        )
+                except (ValueError, TypeError):
+                    return Response(
+                        {
+                            "status": False,
+                            "message": "There are incorrect values in the form",
+                            "errors": {
+                                "eventFilter": ["The selected filter is invalid"]
+                            },
+                            "display_message": False,
+                            "data": [],
+                        },
+                        status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    )
 
+        try:
+            request_details = get_object_or_404(RequestorTeam, sgp_id=sgp_id)
+        except RequestorTeam.DoesNotExist:
+            return Response(
+                {
+                    "status": False,
+                    "message": settings.ERRORS.get("invalid_request"),
+                    "errors": settings.ERRORS.get("invalid_request"),
+                    "display_message": True,
+                    "data": [],
+                },
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
 
-header_data
-<div style="max-width: 83% !important;margin-left: auto;margin-right: auto;">
-     <div>
-         <table class="table table-bordered">
-             <thead>
-                 <tr>
-                     <th style="color:white;" colspan="4">Governance and Strategy</th>
-                 </tr>
-                 <tr>
-                     <th style="width: 24%;" class="bg-info">Security Requirement</th>
-                     <th style="width: 30%;" class="bg-info">Implementation Details</th>
-                     <th style="width: 20%;" class="bg-info">Status</th>
-                     <th class="bg-info">Comment</th>
-                 </tr>
-             </thead>
-             <tbody>
-                 <tr>
-                     <td><b>Certification (ISO, SOC2, etc.)</b></td>
-                     <td>[Statement on how the solution implements the requirement]</td>
-                     <td><div class="header_3_4_security_value">-</div><div class="header_3_4_security_status"><select class="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 header_security_status"><option value="0">Select Status</option><option value="1" style="background-color:#A8D08D">Implemented</option><option value="2" style="background-color:#FFE599">Partially Implemented</option><option value="3" style="background-color:#F4B083">Gap</option><option value="4" style="background-color:#D0CECE">Not Assessed</option><option value="5" style="background-color:#FFFFFF">Not Applicable</option></select></div></td>
-                     <td>-<br></td>
-                 </tr>
-             </tbody>
-         </table>
-     </div>
-     <br>
-     <div>
-         <table class="table table-bordered">
-             <thead>
-                 <tr>
-                     <th style="color:white;" colspan="4">Posture and Vulnerability Management</th>
-                 </tr>
-                 <tr>
-                     <th style="width: 24%;" class="bg-info">Security Requirement</th>
-                     <th style="width: 30%;" class="bg-info">Implementation Details</th>
-                     <th style="width: 20%;" class="bg-info">Status</th>
-                     <th class="bg-info">Comment</th>
-                 </tr>
-             </thead>
-             <tbody>
-                 <tr>
-                     <td><b>System Hardening</b></td>
-                     <td>[Statement on how the solution implements the requirement]</td>
-                     <td><div class="header_3_4_security_value">-</div><div class="header_3_4_security_status"><select class="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 header_security_status"><option value="0">Select Status</option><option value="1" style="background-color:#A8D08D">Implemented</option><option value="2" style="background-color:#FFE599">Partially Implemented</option><option value="3" style="background-color:#F4B083">Gap</option><option value="4" style="background-color:#D0CECE">Not Assessed</option><option value="5" style="background-color:#FFFFFF">Not Applicable</option></select></div></td>
-                     <td>-<br></td>
-                 </tr>
-                 <tr>
-                     <td><b>Application Patching</b><h6>Explain the responsible party (individual, a distribution list, organization, etc.) and how they will maintain application patching on an on-going basis</h6></td>
-                     <td>[Statement on how the solution implements the requirement]</td>
-                     <td><div class="header_3_4_security_value">-</div><div class="header_3_4_security_status"><select class="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 header_security_status"><option value="0">Select Status</option><option value="1" style="background-color:#A8D08D">Implemented</option><option value="2" style="background-color:#FFE599">Partially Implemented</option><option value="3" style="background-color:#F4B083">Gap</option><option value="4" style="background-color:#D0CECE">Not Assessed</option><option value="5" style="background-color:#FFFFFF">Not Applicable</option></select></div></td>
-                     <td>-<br></td>
-                 </tr>
-             </tbody>
-         </table>
-     </div>
-     <br>
-     <div>
-         <table class="table table-bordered">
-             <thead>
-                 <tr>
-                     <th style="color:white;" colspan="4">Identity Management</th>
-                 </tr>
-                 <tr>
-                     <th style="width: 24%;" class="bg-info">Security Requirement</th>
-                     <th style="width: 30%;" class="bg-info">Implementation Details</th>
-                     <th style="width: 20%;" class="bg-info">Status</th>
-                     <th class="bg-info">Comment</th>
-                 </tr>
-             </thead>
-             <tbody>
-                 <tr>
-                     <td><b>Authentication</b></td>
-                     <td>[Statement on how the solution implements the requirement]</td>
-                     <td><div class="header_3_4_security_value">-</div><div class="header_3_4_security_status"><select class="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 header_security_status"><option value="0">Select Status</option><option value="1" style="background-color:#A8D08D">Implemented</option><option value="2" style="background-color:#FFE599">Partially Implemented</option><option value="3" style="background-color:#F4B083">Gap</option><option value="4" style="background-color:#D0CECE">Not Assessed</option><option value="5" style="background-color:#FFFFFF">Not Applicable</option></select></div></td>
-                     <td>-<br></td>
-                 </tr>
-                 <tr>
-                     <td><b>Authorization</b></td>
-                     <td>[Statement on how the solution implements the requirement]</td>
-                     <td><div class="header_3_4_security_value">-</div><div class="header_3_4_security_status"><select class="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 header_security_status"><option value="0">Select Status</option><option value="1" style="background-color:#A8D08D">Implemented</option><option value="2" style="background-color:#FFE599">Partially Implemented</option><option value="3" style="background-color:#F4B083">Gap</option><option value="4" style="background-color:#D0CECE">Not Assessed</option><option value="5" style="background-color:#FFFFFF">Not Applicable</option></select></div></td>
-                     <td>-<br></td>
-                 </tr>
-                 <tr>
-                     <td><b>Information (Data) Workflow</b></td>
-                     <td>[Statement on how the solution implements the requirement]</td>
-                     <td><div class="header_3_4_security_value">-</div><div class="header_3_4_security_status"><select class="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 header_security_status"><option value="0">Select Status</option><option value="1" style="background-color:#A8D08D">Implemented</option><option value="2" style="background-color:#FFE599">Partially Implemented</option><option value="3" style="background-color:#F4B083">Gap</option><option value="4" style="background-color:#D0CECE">Not Assessed</option><option value="5" style="background-color:#FFFFFF">Not Applicable</option></select></div></td>
-                     <td>-<br></td>
-                 </tr>
-                 <tr>
-                     <td><b>Session Management</b></td>
-                     <td>[Statement on how the solution implements the requirement]</td>
-                     <td><div class="header_3_4_security_value">-</div><div class="header_3_4_security_status"><select class="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 header_security_status"><option value="0">Select Status</option><option value="1" style="background-color:#A8D08D">Implemented</option><option value="2" style="background-color:#FFE599">Partially Implemented</option><option value="3" style="background-color:#F4B083">Gap</option><option value="4" style="background-color:#D0CECE">Not Assessed</option><option value="5" style="background-color:#FFFFFF">Not Applicable</option></select></div></td>
-                     <td>-<br></td>
-                 </tr>
-                 <tr>
-                     <td><b>Segregation of Duties</b></td>
-                     <td>[Statement on how the solution implements the requirement]</td>
-                     <td><div class="header_3_4_security_value">-</div><div class="header_3_4_security_status"><select class="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 header_security_status"><option value="0">Select Status</option><option value="1" style="background-color:#A8D08D">Implemented</option><option value="2" style="background-color:#FFE599">Partially Implemented</option><option value="3" style="background-color:#F4B083">Gap</option><option value="4" style="background-color:#D0CECE">Not Assessed</option><option value="5" style="background-color:#FFFFFF">Not Applicable</option></select></div></td>
-                     <td>-<br></td>
-                 </tr>
-                 <tr>
-                     <td><b>Role Based Access Control (RBAC)</b></td>
-                     <td>[Statement on how the solution implements the requirement]</td>
-                     <td><div class="header_3_4_security_value">-</div><div class="header_3_4_security_status"><select class="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 header_security_status"><option value="0">Select Status</option><option value="1" style="background-color:#A8D08D">Implemented</option><option value="2" style="background-color:#FFE599">Partially Implemented</option><option value="3" style="background-color:#F4B083">Gap</option><option value="4" style="background-color:#D0CECE">Not Assessed</option><option value="5" style="background-color:#FFFFFF">Not Applicable</option></select></div></td>
-                     <td>-<br></td>
-                 </tr>
-             </tbody>
-         </table>
-     </div>
-     <br>
-     <div>
-         <table class="table table-bordered">
-             <thead>
-                 <tr>
-                     <th style="color:white;" colspan="4">Privilege Access</th>
-                 </tr>
-                 <tr>
-                     <th style="width: 24%;" class="bg-info">Security Requirement</th>
-                     <th style="width: 30%;" class="bg-info">Implementation Details</th>
-                     <th style="width: 20%;" class="bg-info">Status</th>
-                     <th class="bg-info">Comment</th>
-                 </tr>
-             </thead>
-             <tbody>
-                 <tr>
-                     <td><b>Privileged Access Management</b></td>
-                     <td>[Statement on how the solution implements the requirement]</td>
-                     <td><div class="header_3_4_security_value">-</div><div class="header_3_4_security_status"><select class="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 header_security_status"><option value="0">Select Status</option><option value="1" style="background-color:#A8D08D">Implemented</option><option value="2" style="background-color:#FFE599">Partially Implemented</option><option value="3" style="background-color:#F4B083">Gap</option><option value="4" style="background-color:#D0CECE">Not Assessed</option><option value="5" style="background-color:#FFFFFF">Not Applicable</option></select></div></td>
-                     <td>-<br></td>
-                 </tr>
-             </tbody>
-         </table>
-     </div>
-     <br>
-     <div>
-         <table class="table table-bordered">
-             <thead>
-                 <tr>
-                     <th style="color:white;" colspan="4">Endpoint Security</th>
-                 </tr>
-                 <tr>
-                     <th style="width: 24%;" class="bg-info">Security Requirement</th>
-                     <th style="width: 30%;" class="bg-info">Implementation Details</th>
-                     <th style="width: 20%;" class="bg-info">Status</th>
-                     <th class="bg-info">Comment</th>
-                 </tr>
-             </thead>
-             <tbody>
-                 <tr>
-                     <td><b>Antivirus &amp; Host-based Security</b></td>
-                     <td>[Statement on how the solution implements the requirement]</td>
-                     <td><div class="header_3_4_security_value">-</div><div class="header_3_4_security_status"><select class="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 header_security_status"><option value="0">Select Status</option><option value="1" style="background-color:#A8D08D">Implemented</option><option value="2" style="background-color:#FFE599">Partially Implemented</option><option value="3" style="background-color:#F4B083">Gap</option><option value="4" style="background-color:#D0CECE">Not Assessed</option><option value="5" style="background-color:#FFFFFF">Not Applicable</option></select></div></td>
-                     <td>-<br></td>
-                 </tr>
-             </tbody>
-         </table>
-     </div>
-     <br>
-     <div>
-         <table class="table table-bordered">
-             <thead>
-                 <tr>
-                     <th style="color:white;" colspan="4">Network Security</th>
-                 </tr>
-                 <tr>
-                     <th style="width: 24%;" class="bg-info">Security Requirement</th>
-                     <th style="width: 30%;" class="bg-info">Implementation Details</th>
-                     <th style="width: 20%;" class="bg-info">Status</th>
-                     <th class="bg-info">Comment</th>
-                 </tr>
-             </thead>
-             <tbody>
-                 <tr>
-                     <td><b>Logical &amp; Physical Segmentation</b></td>
-                     <td>[Statement on how the solution implements the requirement]</td>
-                     <td><div class="header_3_4_security_value">-</div><div class="header_3_4_security_status"><select class="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 header_security_status"><option value="0">Select Status</option><option value="1" style="background-color:#A8D08D">Implemented</option><option value="2" style="background-color:#FFE599">Partially Implemented</option><option value="3" style="background-color:#F4B083">Gap</option><option value="4" style="background-color:#D0CECE">Not Assessed</option><option value="5" style="background-color:#FFFFFF">Not Applicable</option></select></div></td>
-                     <td>-<br></td>
-                 </tr>
-                 <tr>
-                     <td><b>Network-based Security</b><h6>Intrusion Detection / Prevention Systems, Proxy, Web Application Firewall, Azure Network Security Group (NSG), including NSG rules</h6></td>
-                     <td>[Statement on how the solution implements the requirement]</td>
-                     <td><div class="header_3_4_security_value">-</div><div class="header_3_4_security_status"><select class="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 header_security_status"><option value="0">Select Status</option><option value="1" style="background-color:#A8D08D">Implemented</option><option value="2" style="background-color:#FFE599">Partially Implemented</option><option value="3" style="background-color:#F4B083">Gap</option><option value="4" style="background-color:#D0CECE">Not Assessed</option><option value="5" style="background-color:#FFFFFF">Not Applicable</option></select></div></td>
-                     <td>-<br></td>
-                 </tr>
-             </tbody>
-         </table>
-     </div>
-     <br>
-     <div>
-         <table class="table table-bordered">
-             <thead>
-                 <tr>
-                     <th style="color:white;" colspan="4">DevOps Security</th>
-                 </tr>
-                 <tr>
-                     <th style="width: 24%;" class="bg-info">Security Requirement</th>
-                     <th style="width: 30%;" class="bg-info">Implementation Details</th>
-                     <th style="width: 20%;" class="bg-info">Status</th>
-                     <th class="bg-info">Comment</th>
-                 </tr>
-             </thead>
-             <tbody>
-                 <tr>
-                     <td><b>Static Code Analysis</b></td>
-                     <td>[Statement on how the solution implements the requirement]</td>
-                     <td><div class="header_3_4_security_value">-</div><div class="header_3_4_security_status"><select class="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 header_security_status"><option value="0">Select Status</option><option value="1" style="background-color:#A8D08D">Implemented</option><option value="2" style="background-color:#FFE599">Partially Implemented</option><option value="3" style="background-color:#F4B083">Gap</option><option value="4" style="background-color:#D0CECE">Not Assessed</option><option value="5" style="background-color:#FFFFFF">Not Applicable</option></select></div></td>
-                     <td>-<br></td>
-                 </tr>
-                 <tr>
-                     <td><b>Dynamic Code Analysis</b></td>
-                     <td>[Statement on how the solution implements the requirement]</td>
-                     <td><div class="header_3_4_security_value">-</div><div class="header_3_4_security_status"><select class="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 header_security_status"><option value="0">Select Status</option><option value="1" style="background-color:#A8D08D">Implemented</option><option value="2" style="background-color:#FFE599">Partially Implemented</option><option value="3" style="background-color:#F4B083">Gap</option><option value="4" style="background-color:#D0CECE">Not Assessed</option><option value="5" style="background-color:#FFFFFF">Not Applicable</option></select></div></td>
-                     <td>-<br></td>
-                 </tr>
-                 <tr>
-                     <td><b>Penetration Testing</b></td>
-                     <td>[Statement on how the solution implements the requirement]</td>
-                     <td><div class="header_3_4_security_value">-</div><div class="header_3_4_security_status"><select class="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 header_security_status"><option value="0">Select Status</option><option value="1" style="background-color:#A8D08D">Implemented</option><option value="2" style="background-color:#FFE599">Partially Implemented</option><option value="3" style="background-color:#F4B083">Gap</option><option value="4" style="background-color:#D0CECE">Not Assessed</option><option value="5" style="background-color:#FFFFFF">Not Applicable</option></select></div></td>
-                     <td>-<br></td>
-                 </tr>
-             </tbody>
-         </table>
-     </div>
-     <br>
-     <div>
-         <table class="table table-bordered">
-             <thead>
-                 <tr>
-                     <th style="color:white;" colspan="4">Data Protection</th>
-                 </tr>
-                 <tr>
-                     <th style="width: 24%;" class="bg-info">Security Requirement</th>
-                     <th style="width: 30%;" class="bg-info">Implementation Details</th>
-                     <th style="width: 20%;" class="bg-info">Status</th>
-                     <th class="bg-info">Comment</th>
-                 </tr>
-             </thead>
-             <tbody>
-                 <tr>
-                     <td><b>Data-in-Transit</b></td>
-                     <td>[Statement on how the solution implements the requirement]</td>
-                     <td><div class="header_3_4_security_value">-</div><div class="header_3_4_security_status"><select class="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 header_security_status"><option value="0">Select Status</option><option value="1" style="background-color:#A8D08D">Implemented</option><option value="2" style="background-color:#FFE599">Partially Implemented</option><option value="3" style="background-color:#F4B083">Gap</option><option value="4" style="background-color:#D0CECE">Not Assessed</option><option value="5" style="background-color:#FFFFFF">Not Applicable</option></select></div></td>
-                     <td>-<br></td>
-                 </tr>
-                 <tr>
-                     <td><b>Data-at-Rest</b></td>
-                     <td>[Statement on how the solution implements the requirement]</td>
-                     <td><div class="header_3_4_security_value">-</div><div class="header_3_4_security_status"><select class="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 header_security_status"><option value="0">Select Status</option><option value="1" style="background-color:#A8D08D">Implemented</option><option value="2" style="background-color:#FFE599">Partially Implemented</option><option value="3" style="background-color:#F4B083">Gap</option><option value="4" style="background-color:#D0CECE">Not Assessed</option><option value="5" style="background-color:#FFFFFF">Not Applicable</option></select></div></td>
-                     <td>-<br></td>
-                 </tr>
-                 <tr>
-                     <td><b>Database Encryption</b></td>
-                     <td>[Statement on how the solution implements the requirement]</td>
-                     <td><div class="header_3_4_security_value">-</div><div class="header_3_4_security_status"><select class="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 header_security_status"><option value="0">Select Status</option><option value="1" style="background-color:#A8D08D">Implemented</option><option value="2" style="background-color:#FFE599">Partially Implemented</option><option value="3" style="background-color:#F4B083">Gap</option><option value="4" style="background-color:#D0CECE">Not Assessed</option><option value="5" style="background-color:#FFFFFF">Not Applicable</option></select></div></td>
-                     <td>-<br></td>
-                 </tr>
-                 <tr>
-                     <td><b>Key Management</b></td>
-                     <td>[Statement on how the solution implements the requirement]</td>
-                     <td><div class="header_3_4_security_value">-</div><div class="header_3_4_security_status"><select class="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 header_security_status"><option value="0">Select Status</option><option value="1" style="background-color:#A8D08D">Implemented</option><option value="2" style="background-color:#FFE599">Partially Implemented</option><option value="3" style="background-color:#F4B083">Gap</option><option value="4" style="background-color:#D0CECE">Not Assessed</option><option value="5" style="background-color:#FFFFFF">Not Applicable</option></select></div></td>
-                     <td>-<br></td>
-                 </tr>
-                 <tr>
-                     <td><b>Reporting / Data Exporting</b></td>
-                     <td>[Statement on how the solution implements the requirement]</td>
-                     <td><div class="header_3_4_security_value">-</div><div class="header_3_4_security_status"><select class="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 header_security_status"><option value="0">Select Status</option><option value="1" style="background-color:#A8D08D">Implemented</option><option value="2" style="background-color:#FFE599">Partially Implemented</option><option value="3" style="background-color:#F4B083">Gap</option><option value="4" style="background-color:#D0CECE">Not Assessed</option><option value="5" style="background-color:#FFFFFF">Not Applicable</option></select></div></td>
-                     <td>-<br></td>
-                 </tr>
-                 <tr>
-                     <td><b>External Content</b><h6>Provide summary details of any external data providers transferring content to the system and the provider's location and communications method(s).</h6></td>
-                     <td>[Statement on how the solution implements the requirement]</td>
-                     <td><div class="header_3_4_security_value">-</div><div class="header_3_4_security_status"><select class="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 header_security_status"><option value="0">Select Status</option><option value="1" style="background-color:#A8D08D">Implemented</option><option value="2" style="background-color:#FFE599">Partially Implemented</option><option value="3" style="background-color:#F4B083">Gap</option><option value="4" style="background-color:#D0CECE">Not Assessed</option><option value="5" style="background-color:#FFFFFF">Not Applicable</option></select></div></td>
-                     <td>-<br></td>
-                 </tr>
-             </tbody>
-         </table>
-     </div>
-     <br>
-     <div>
-         <table class="table table-bordered">
-             <thead>
-                 <tr>
-                     <th style="color:white;" colspan="4">Backup and Recovery</th>
-                 </tr>
-                 <tr>
-                     <th style="width: 24%;" class="bg-info">Security Requirement</th>
-                     <th style="width: 30%;" class="bg-info">Implementation Details</th>
-                     <th style="width: 20%;" class="bg-info">Status</th>
-                     <th class="bg-info">Comment</th>
-                 </tr>
-             </thead>
-             <tbody>
-                 <tr>
-                     <td><b>Backup / Disaster Recovery</b><h6>VM Snapshot, Microsoft Azure Recovery Service (MAR) agent, Azure Backup Server, etc.</h6></td>
-                     <td>[Statement on how the solution implements the requirement with alignment to the BC level]</td>
-                     <td><div class="header_3_4_security_value">-</div><div class="header_3_4_security_status"><select class="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 header_security_status"><option value="0">Select Status</option><option value="1" style="background-color:#A8D08D">Implemented</option><option value="2" style="background-color:#FFE599">Partially Implemented</option><option value="3" style="background-color:#F4B083">Gap</option><option value="4" style="background-color:#D0CECE">Not Assessed</option><option value="5" style="background-color:#FFFFFF">Not Applicable</option></select></div></td>
-                     <td>-<br></td>
-                 </tr>
-                 <tr>
-                     <td><b>Fault Tolerance</b><h6>(Sustain availability, DDoS mitigation, etc.)</h6></td>
-                     <td>[Statement on how the solution implements the requirement with alignment to the BC level]</td>
-                     <td><div class="header_3_4_security_value">-</div><div class="header_3_4_security_status"><select class="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 header_security_status"><option value="0">Select Status</option><option value="1" style="background-color:#A8D08D">Implemented</option><option value="2" style="background-color:#FFE599">Partially Implemented</option><option value="3" style="background-color:#F4B083">Gap</option><option value="4" style="background-color:#D0CECE">Not Assessed</option><option value="5" style="background-color:#FFFFFF">Not Applicable</option></select></div></td>
-                     <td>-<br></td>
-                 </tr>
-                 <tr>
-                     <td><b>Redundancy</b><h6>Specify if geo-redundancy has been requested and describe its implementation.</h6></td>
-                     <td>[Statement on how the solution implements the requirement with alignment to the BC level]</td>
-                     <td><div class="header_3_4_security_value">-</div><div class="header_3_4_security_status"><select class="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 header_security_status"><option value="0">Select Status</option><option value="1" style="background-color:#A8D08D">Implemented</option><option value="2" style="background-color:#FFE599">Partially Implemented</option><option value="3" style="background-color:#F4B083">Gap</option><option value="4" style="background-color:#D0CECE">Not Assessed</option><option value="5" style="background-color:#FFFFFF">Not Applicable</option></select></div></td>
-                     <td>-<br></td>
-                 </tr>
-                 <tr>
-                     <td><b>Incident Management (Application)</b></td>
-                     <td>[Statement on how the solution implements the requirement with alignment to the BC level]</td>
-                     <td><div class="header_3_4_security_value">-</div><div class="header_3_4_security_status"><select class="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 header_security_status"><option value="0">Select Status</option><option value="1" style="background-color:#A8D08D">Implemented</option><option value="2" style="background-color:#FFE599">Partially Implemented</option><option value="3" style="background-color:#F4B083">Gap</option><option value="4" style="background-color:#D0CECE">Not Assessed</option><option value="5" style="background-color:#FFFFFF">Not Applicable</option></select></div></td>
-                     <td>-<br></td>
-                 </tr>
-             </tbody>
-         </table>
-     </div>
-     <br>
-     <div>
-         <table class="table table-bordered">
-             <thead>
-                 <tr>
-                     <th style="color:white;" colspan="4">Logging &amp; Threat Detection</th>
-                 </tr>
-                 <tr>
-                     <th style="width: 24%;" class="bg-info">Security Requirement</th>
-                     <th style="width: 30%;" class="bg-info">Implementation Details</th>
-                     <th style="width: 20%;" class="bg-info">Status</th>
-                     <th class="bg-info">Comment</th>
-                 </tr>
-             </thead>
-             <tbody>
-                 <tr>
-                     <td><b>Application Monitoring</b><h6>Database, Frontend (IIS), Transactions (accesses, changes, etc.), Performance, etc.</h6></td>
-                     <td>[Statement on how the solution implements the requirement]</td>
-                     <td><div class="header_3_4_security_value">-</div><div class="header_3_4_security_status"><select class="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 header_security_status"><option value="0">Select Status</option><option value="1" style="background-color:#A8D08D">Implemented</option><option value="2" style="background-color:#FFE599">Partially Implemented</option><option value="3" style="background-color:#F4B083">Gap</option><option value="4" style="background-color:#D0CECE">Not Assessed</option><option value="5" style="background-color:#FFFFFF">Not Applicable</option></select></div></td>
-                     <td>-<br></td>
-                 </tr>
-                 <tr>
-                     <td><b>System Monitoring</b><h6>Operating System, Host-based Protections, Host Performance, etc.</h6></td>
-                     <td>[Statement on how the solution implements the requirement]</td>
-                     <td><div class="header_3_4_security_value">-</div><div class="header_3_4_security_status"><select class="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 header_security_status"><option value="0">Select Status</option><option value="1" style="background-color:#A8D08D">Implemented</option><option value="2" style="background-color:#FFE599">Partially Implemented</option><option value="3" style="background-color:#F4B083">Gap</option><option value="4" style="background-color:#D0CECE">Not Assessed</option><option value="5" style="background-color:#FFFFFF">Not Applicable</option></select></div></td>
-                     <td>-<br></td>
-                 </tr>
-                 <tr>
-                     <td><b>Infrastructure Monitoring</b><h6>Intrusion Detection / Prevention Systems, Proxy, Web Application Firewall, Azure Network Security Group (NSG), NSG policy, etc.</h6></td>
-                     <td>[Statement on how the solution implements the requirement]</td>
-                     <td><div class="header_3_4_security_value">-</div><div class="header_3_4_security_status"><select class="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 header_security_status"><option value="0">Select Status</option><option value="1" style="background-color:#A8D08D">Implemented</option><option value="2" style="background-color:#FFE599">Partially Implemented</option><option value="3" style="background-color:#F4B083">Gap</option><option value="4" style="background-color:#D0CECE">Not Assessed</option><option value="5" style="background-color:#FFFFFF">Not Applicable</option></select></div></td>
-                     <td>-<br></td>
-                 </tr>
-                 <tr>
-                     <td><b>Log Retention Time</b></td>
-                     <td>[Statement of time for each log type, if different. If retention time is less than 180 days note as a Gap]</td>
-                     <td><div class="header_3_4_security_value">-</div><div class="header_3_4_security_status"><select class="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 header_security_status"><option value="0">Select Status</option><option value="1" style="background-color:#A8D08D">Implemented</option><option value="2" style="background-color:#FFE599">Partially Implemented</option><option value="3" style="background-color:#F4B083">Gap</option><option value="4" style="background-color:#D0CECE">Not Assessed</option><option value="5" style="background-color:#FFFFFF">Not Applicable</option></select></div></td>
-                     <td>-<br></td>
-                 </tr>
-             </tbody>
-         </table>
-     </div>
-   </div>
+        access_error = check_user_access(
+            user=user, request_instance=request_details, is_hold_data=True
+        )
 
+        if access_error:
+            return Response(
+                {
+                    "status": False,
+                    "message": access_error,
+                    "errors": access_error,
+                    "display_message": True,
+                    "data": [],
+                },
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
 
+        try:
+            data = {}
+            data["logEventList"] = LogUpdate.EVENT_TYPE_CHOICES
+
+            if event_filter_status == "Yes" and event_filter:
+                log_updates = (
+                    LogUpdate.objects.filter(
+                        request=request_details,
+                        event__in=event_filter,
+                    )
+                    .filter(~Q(event=LogUpdate.SAR_LOG_EVENT))
+                    .select_related("created_by")
+                    .order_by("-created_date")
+                )
+            else:
+                log_updates = (
+                    LogUpdate.objects.filter(request=request_details)
+                    .filter(~Q(event=LogUpdate.SAR_LOG_EVENT))
+                    .select_related("created_by")
+                    .order_by("-created_date")
+                )
+
+            serializer = LogUpdateSerializer(log_updates, many=True)
+            log_update_data = list(serializer.data)
+
+            artifact_qids = set()
+            for item in log_update_data:
+                if item.get("event") == LogUpdate.ARTIFACT_EVENT:
+                    try:
+                        artifact_qids.add(int(item["response_for"]))
+                    except (ValueError, TypeError):
+                        pass
+
+            question_map = {}
+            if artifact_qids:
+                question_map = dict(
+                    SpiPsiMaster.objects.filter(qid__in=artifact_qids).values_list(
+                        "qid", "question_name"
+                    )
+                )
+
+            for item in log_update_data:
+                event = item.get("event")
+
+                if event == LogUpdate.ARTIFACT_EVENT:
+                    try:
+                        item["response_for"] = question_map.get(
+                            int(item["response_for"]), item["response_for"]
+                        )
+                    except (ValueError, TypeError):
+                        pass
+
+                elif event == LogUpdate.STATUS_EVENT:
+                    if item.get("response_for") in [
+                        LogUpdate.RES_FOR_REQUEST,
+                        LogUpdate.RES_FOR_SUB_STATUS,
+                    ]:
+                        try:
+                            item["old_value_str"] = RequestorTeam.STATUS_CHOICES.get(
+                                int(item.get("old_value", "")),
+                                item.get("old_value", "-"),
+                            )
+                        except (ValueError, TypeError):
+                            item["old_value_str"] = item.get("old_value", "-")
+
+                        try:
+                            item["new_value_str"] = RequestorTeam.STATUS_CHOICES.get(
+                                int(item.get("new_value", "")),
+                                item.get("new_value", "-"),
+                            )
+                        except (ValueError, TypeError):
+                            item["new_value_str"] = item.get("new_value", "-")
+
+                elif event == LogUpdate.ATO_STATUS_EVENT:
+                    try:
+                        item["old_value_str"] = RequestorTeam.ATO_STATUS_CHOICES.get(
+                            int(item.get("old_value", "")),
+                            item.get("old_value", "-"),
+                        )
+                    except (ValueError, TypeError):
+                        item["old_value_str"] = item.get("old_value", "-")
+
+                    try:
+                        item["new_value_str"] = RequestorTeam.ATO_STATUS_CHOICES.get(
+                            int(item.get("new_value", "")),
+                            item.get("new_value", "-"),
+                        )
+                    except (ValueError, TypeError):
+                        item["new_value_str"] = item.get("new_value", "-")
+
+                elif event == LogUpdate.INTAKE_EVENT:
+                    item["response_for"] = (
+                        f"Intake Form - {item.get('response_for', '')}"
+                    )
+
+                elif event in (LogUpdate.ANALYZE_EVENT, LogUpdate.SEC_ANALYZE_EVENT):
+                    item["old_value_str"] = item.get("old_value", "-")
+                    item["new_value_str"] = item.get("new_value", "")
+
+                elif event == LogUpdate.RESET_INTAKE_EVENT or event == LogUpdate.RESET_REVIEW_EVENT or event == LogUpdate.CHANGE_SOLUTION_TYPE_EVENT or event == LogUpdate.RES_ASS_EVENT:
+                    try:
+                        item["old_value_str"] = RequestorTeam.STATUS_CHOICES.get(
+                            int(item.get("old_value", "")),
+                            item.get("old_value", "-"),
+                        )
+                    except (ValueError, TypeError):
+                        item["old_value_str"] = item.get("old_value", "-")
+
+                    try:
+                        item["new_value_str"] = RequestorTeam.STATUS_CHOICES.get(
+                            int(item.get("new_value", "")),
+                            item.get("new_value", "-"),
+                        )
+                    except (ValueError, TypeError):
+                        item["new_value_str"] = item.get("new_value", "-")
+
+            include_doc_events = (
+                event_filter_status == "Yes"
+                and LogUpdate.DOC_EVENT in [int(e) for e in event_filter]
+            ) or event_filter_status == "No"
+
+            if include_doc_events:
+                spi_psi_responses = (
+                    SpiPsiResponse.objects.filter(request=request_details)
+                    .exclude(filename="")
+                    .exclude(filename__isnull=True)
+                    .select_related("question")
+                )
+
+                requestor_storage = settings.GLOBAL_CONFIG.get(
+                    "requestor_storage", "requestor"
+                )
+
+                for response in spi_psi_responses:
+                    if not response.filename:
+                        continue
+
+                    old_value = "-"
+
+                    if response.question_id == 43:
+                        response_for = (
+                            f"Vendor/Third Party 1 - {response.question.question_name}"
+                        )
+                    else:
+                        response_for = response.question.question_name
+
+                    location = f"||storage/{requestor_storage}/{sgp_id}/"
+                    new_value = location + response.filename.replace("||", location)
+
+                    doc_created_date = (
+                        getattr(response, "created_date", None)
+                        or request_details.created_on
+                    )
+                    doc_created_date_str = (
+                        django_timezone.localtime(doc_created_date).strftime(
+                            "%Y-%m-%d %H:%M:%S"
+                        )
+                        if doc_created_date
+                        else None
+                    )
+
+                    log_update_data.append(
+                        {
+                            "event": LogUpdate.DOC_EVENT,
+                            "old_value": old_value,
+                            "new_value": new_value,
+                            "response_for": response_for,
+                            "created_date": doc_created_date_str,
+                            "event_string": LogUpdate.get_event_type_display(
+                                LogUpdate.DOC_EVENT
+                            ),
+                            "created_by_name": (
+                                request_details.request_owner.get_full_name()
+                                if request_details.request_owner
+                                else "Unknown"
+                            ),
+                            "old_value_str": old_value,
+                            "new_value_str": new_value,
+                        }
+                    )
+
+                third_party_responses = (
+                    ThirdPartyResponse.objects.filter(request=request_details)
+                    .exclude(filename="")
+                    .exclude(filename__isnull=True)
+                    .select_related("question")
+                    .order_by("sequence")
+                )
+
+                for idx, response in enumerate(third_party_responses):
+                    if not response.filename:
+                        continue
+
+                    old_value = "-"
+                    response_for = f"Vendor/Third Party {idx + 2} - {response.question.question_name}"
+
+                    location = f"||storage/{requestor_storage}/{sgp_id}/"
+                    new_value = location + response.filename.replace("\\", location)
+
+                    doc_created_date = (
+                        getattr(response, "created_date", None)
+                        or request_details.created_on
+                    )
+                    doc_created_date_str = (
+                        django_timezone.localtime(doc_created_date).strftime(
+                            "%Y-%m-%d %H:%M:%S"
+                        )
+                        if doc_created_date
+                        else None
+                    )
+
+                    log_update_data.append(
+                        {
+                            "event": LogUpdate.DOC_EVENT,
+                            "old_value": old_value,
+                            "new_value": new_value,
+                            "response_for": response_for,
+                            "created_date": doc_created_date_str,
+                            "event_string": LogUpdate.get_event_type_display(
+                                LogUpdate.DOC_EVENT
+                            ),
+                            "created_by_name": (
+                                request_details.request_owner.get_full_name()
+                                if request_details.request_owner
+                                else "Unknown"
+                            ),
+                            "old_value_str": old_value,
+                            "new_value_str": new_value,
+                        }
+                    )
+
+            def get_sort_key(item):
+                created_date = item.get("created_date")
+                if not created_date:
+                    return django_timezone.make_aware(datetime.min, timezone.utc)
+
+                if isinstance(created_date, datetime):
+                    dt = created_date
+                else:
+                    created_date_str = str(created_date).strip()
+                    dt = parse_datetime(created_date_str)
+                    if dt is None:
+                        try:
+                            dt = datetime.strptime(
+                                created_date_str, "%Y-%m-%d %H:%M:%S"
+                            )
+                        except ValueError:
+                            return django_timezone.make_aware(
+                                datetime.min, timezone.utc
+                            )
+
+                if django_timezone.is_naive(dt):
+                    dt = django_timezone.make_aware(dt, timezone.utc)
+
+                return dt
+
+            log_update_data.sort(key=get_sort_key, reverse=True)
+
+            data["logUpdateData"] = log_update_data
+            data["page_title"] = f"View Logs - {sgp_id}"
+            data["projectName"] = request_details.project_name
+            data["solutionName"] = request_details.solution_name
+            data["solutionType"] = request_details.solution_type
+            data["solutionType"] = RequestorTeam.SOLUTION_TYPE_CHOICES.get(
+                request_details.solution_type
+            )
+            data["sgpId"] = sgp_id
+            data["total"] = len(log_update_data)
+
+            return Response(
+                {
+                    "status": True,
+                    "display_message": False,
+                    "message": "Log list fetched",
+                    "errors": [],
+                    "data": data,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        except Exception as e:
+            return Response(
+                {
+                    "status": False,
+                    "message": settings.ERRORS.get("syntax_error_access"),
+                    "errors": [str(e)],
+                    "display_message": True,
+                    "data": [],
+                },
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )

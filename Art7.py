@@ -1,294 +1,1382 @@
-from django.conf import settings
-from django.db import models
-
-
-class SarTemplateJsonData(models.Model):
-
-    STATUS_DRAFT = 1
-    STATUS_COMPLETED = 2
-
-    STATUS_LABELS = {
-        STATUS_DRAFT: "DRAFT",
-        STATUS_COMPLETED: "COMPLETED"
+{
+    "status": true,
+    "display_message": false,
+    "message": "Log list fetched",
+    "errors": [],
+    "data": {
+        "logEventList": {
+            "1": "Status",
+            "2": "Comment",
+            "3": "Artifacts",
+            "4": "Email",
+            "5": "Intake form data",
+            "6": "Date change",
+            "7": "Response provided",
+            "8": "Coordinator Comments",
+            "9": "Security Resource Comments",
+            "10": "Checklist Update",
+            "11": "AI",
+            "12": "ATO Status Event",
+            "14": "Findings",
+            "15": "ADO",
+            "16": "Reset Intake",
+            "17": "Reset Review",
+            "18": "Change Solution Type",
+            "19": "Re-initiate Assessment"
+        },
+        "logUpdateData": [
+            {
+                "id": 2663,
+                "event": 1,
+                "old_value": "70",
+                "new_value": "54",
+                "response_for": "request_status",
+                "created_date": "2026-09-25 13:49:02",
+                "event_string": "Status",
+                "created_by_name": "latname Zanzane",
+                "user_role": "System Super Admin",
+                "old_value_str": "Corrections Required",
+                "new_value_str": "Final GISG Leadership Review"
+            },
+            {
+                "id": 2664,
+                "event": 4,
+                "old_value": null,
+                "new_value": "<b>To :</b> ayookeowo@abcd.com,jsynovec@abcd.com||Hi ,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Final GISG Leadership review<br>\n                            Security assessment request sub-status: Final GISG Leadership review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>",
+                "response_for": "Global Security Assessment: Action Required for KAT 2026.3 (362040)",
+                "created_date": "2026-09-25 13:49:02",
+                "event_string": "Email",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": null,
+                "new_value_str": "<b>To :</b> ayookeowo@abcd.com,jsynovec@abcd.com||Hi ,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Final GISG Leadership review<br>\n                            Security assessment request sub-status: Final GISG Leadership review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>"
+            },
+            {
+                "id": 2659,
+                "event": 1,
+                "old_value": "54",
+                "new_value": "70",
+                "response_for": "request_status",
+                "created_date": "2026-09-25 13:48:03",
+                "event_string": "Status",
+                "created_by_name": "latname Zanzane",
+                "user_role": "System Super Admin",
+                "old_value_str": "Final GISG Leadership Review",
+                "new_value_str": "Corrections Required"
+            },
+            {
+                "id": 2660,
+                "event": 1,
+                "old_value": "54",
+                "new_value": "64",
+                "response_for": "request_sub_status",
+                "created_date": "2026-09-25 13:48:03",
+                "event_string": "Status",
+                "created_by_name": "latname Zanzane",
+                "user_role": "System Super Admin",
+                "old_value_str": "Final GISG Leadership Review",
+                "new_value_str": "Security Resource Review"
+            },
+            {
+                "id": 2662,
+                "event": 4,
+                "old_value": null,
+                "new_value": "<b>To :</b> go-oiuytdrtfyuio@abcd.com||Hi Security Team,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Corrections required<br>\n                            Security assessment request sub-status: Security resource review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>",
+                "response_for": "Global Security Assessment: Action Required for KAT 2026.3 (362040)",
+                "created_date": "2026-09-25 13:48:03",
+                "event_string": "Email",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": null,
+                "new_value_str": "<b>To :</b> go-oiuytdrtfyuio@abcd.com||Hi Security Team,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Corrections required<br>\n                            Security assessment request sub-status: Security resource review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>"
+            },
+            {
+                "id": 2658,
+                "event": 7,
+                "old_value": "MEDIUM",
+                "new_value": "MEDIUM",
+                "response_for": "SAR overall risk",
+                "created_date": "2026-09-25 13:48:03",
+                "event_string": "Response provided",
+                "created_by_name": "latname Zanzane",
+                "user_role": "System Super Admin",
+                "old_value_str": "MEDIUM",
+                "new_value_str": "MEDIUM"
+            },
+            {
+                "id": 2655,
+                "event": 1,
+                "old_value": "11",
+                "new_value": "54",
+                "response_for": "request_status",
+                "created_date": "2026-09-25 13:46:39",
+                "event_string": "Status",
+                "created_by_name": "latname Zanzane",
+                "user_role": "System Super Admin",
+                "old_value_str": "Assessment in Progress",
+                "new_value_str": "Final GISG Leadership Review"
+            },
+            {
+                "id": 2656,
+                "event": 4,
+                "old_value": null,
+                "new_value": "<b>To :</b> ayookeowo@abcd.com,jsynovec@abcd.com||Hi ,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Final GISG Leadership review<br>\n                            Security assessment request sub-status: Final GISG Leadership review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>",
+                "response_for": "Global Security Assessment: Action Required for KAT 2026.3 (362040)",
+                "created_date": "2026-09-25 13:46:39",
+                "event_string": "Email",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": null,
+                "new_value_str": "<b>To :</b> ayookeowo@abcd.com,jsynovec@abcd.com||Hi ,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Final GISG Leadership review<br>\n                            Security assessment request sub-status: Final GISG Leadership review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>"
+            },
+            {
+                "id": 2648,
+                "event": 1,
+                "old_value": "54",
+                "new_value": "45",
+                "response_for": "request_status",
+                "created_date": "2026-09-22 14:45:09",
+                "event_string": "Status",
+                "created_by_name": "latname Zanzane",
+                "user_role": "GISG Leadership",
+                "old_value_str": "Final GISG Leadership Review",
+                "new_value_str": "Continuous Monitoring"
+            },
+            {
+                "id": 2649,
+                "event": 1,
+                "old_value": "54",
+                "new_value": "77",
+                "response_for": "request_sub_status",
+                "created_date": "2026-09-22 14:45:09",
+                "event_string": "Status",
+                "created_by_name": "latname Zanzane",
+                "user_role": "GISG Leadership",
+                "old_value_str": "Final GISG Leadership Review",
+                "new_value_str": "SAR Published"
+            },
+            {
+                "id": 2651,
+                "event": 4,
+                "old_value": null,
+                "new_value": "<b>To :</b> vtm@abcd.com||<b>CC :</b> ccarreira@abcd.com,go-oiuytdrtfyuio@abcd.com||Hi latname Zanzane,\n                                <br><br>The baseline security assessment for your application has been completed, and the application has now been transitioned to <b>Continuous Security Assessment (CSA)</b> mode.<br><br>\n                                As part of CSA, your application's security posture will be continuously monitored using the configured assessment data sources. This enables ongoing visibility of security risks and helps ensure that emerging issues are identified in a timely manner.<br><br>\n                                As a result of successfully completing the baseline assessment, your application's <b>Authorization to Operate (ATO)</b> status has been updated from <b>Provisional</b> to <b>Provisional</b>.<br>\n                                No action is required from you currently. If any new security findings are identified through the continuous assessment process, the designated application contacts will be notified with details and any required remediation actions.<br>\n                                You can view your application's Risk Profile here:<br>\n                               http://localhost:3000/risk?request=362040<br><br>\n                                Thank you for your continued partnership in maintaining a secure environment,<br><br>\n                                <b>Global Information Security Group (GISG)</b>\n                            <br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>",
+                "response_for": "Application Transition to Continuous Security Assessment (CSA) for KAT 2026.3 (362040)",
+                "created_date": "2026-09-22 14:45:09",
+                "event_string": "Email",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": null,
+                "new_value_str": "<b>To :</b> vtm@abcd.com||<b>CC :</b> ccarreira@abcd.com,go-oiuytdrtfyuio@abcd.com||Hi latname Zanzane,\n                                <br><br>The baseline security assessment for your application has been completed, and the application has now been transitioned to <b>Continuous Security Assessment (CSA)</b> mode.<br><br>\n                                As part of CSA, your application's security posture will be continuously monitored using the configured assessment data sources. This enables ongoing visibility of security risks and helps ensure that emerging issues are identified in a timely manner.<br><br>\n                                As a result of successfully completing the baseline assessment, your application's <b>Authorization to Operate (ATO)</b> status has been updated from <b>Provisional</b> to <b>Provisional</b>.<br>\n                                No action is required from you currently. If any new security findings are identified through the continuous assessment process, the designated application contacts will be notified with details and any required remediation actions.<br>\n                                You can view your application's Risk Profile here:<br>\n                               http://localhost:3000/risk?request=362040<br><br>\n                                Thank you for your continued partnership in maintaining a secure environment,<br><br>\n                                <b>Global Information Security Group (GISG)</b>\n                            <br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>"
+            },
+            {
+                "id": 2647,
+                "event": 7,
+                "old_value": "MEDIUM",
+                "new_value": "MEDIUM",
+                "response_for": "SAR overall risk",
+                "created_date": "2026-09-22 14:45:09",
+                "event_string": "Response provided",
+                "created_by_name": "latname Zanzane",
+                "user_role": "GISG Leadership",
+                "old_value_str": "MEDIUM",
+                "new_value_str": "MEDIUM"
+            },
+            {
+                "id": 2650,
+                "event": 12,
+                "old_value": "3",
+                "new_value": "1",
+                "response_for": "ATO Status",
+                "created_date": "2026-09-22 14:45:09",
+                "event_string": "ATO Status Event",
+                "created_by_name": "latname Zanzane",
+                "user_role": "GISG Leadership",
+                "old_value_str": "At Risk",
+                "new_value_str": "Provisional"
+            },
+            {
+                "id": 2644,
+                "event": 1,
+                "old_value": "11",
+                "new_value": "54",
+                "response_for": "request_status",
+                "created_date": "2026-09-22 14:44:40",
+                "event_string": "Status",
+                "created_by_name": "latname Zanzane",
+                "user_role": "Security Resource",
+                "old_value_str": "Assessment in Progress",
+                "new_value_str": "Final GISG Leadership Review"
+            },
+            {
+                "id": 2645,
+                "event": 4,
+                "old_value": null,
+                "new_value": "<b>To :</b> ayookeowo@abcd.com,jsynovec@abcd.com||Hi ,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Final GISG Leadership review<br>\n                            Security assessment request sub-status: Final GISG Leadership review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>",
+                "response_for": "Global Security Assessment: Action Required for KAT 2026.3 (362040)",
+                "created_date": "2026-09-22 14:44:40",
+                "event_string": "Email",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": null,
+                "new_value_str": "<b>To :</b> ayookeowo@abcd.com,jsynovec@abcd.com||Hi ,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Final GISG Leadership review<br>\n                            Security assessment request sub-status: Final GISG Leadership review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>"
+            },
+            {
+                "id": 2642,
+                "event": 1,
+                "old_value": "65",
+                "new_value": "64",
+                "response_for": "request_sub_status",
+                "created_date": "2026-09-22 14:44:09",
+                "event_string": "Status",
+                "created_by_name": "latname Zanzane",
+                "user_role": "Solution Team",
+                "old_value_str": "Solution Team Review",
+                "new_value_str": "Security Resource Review"
+            },
+            {
+                "id": 2641,
+                "event": 4,
+                "old_value": null,
+                "new_value": "<b>To :</b> go-oiuytdrtfyuio@abcd.com||Hi Security Team,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Security resource review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>",
+                "response_for": "Global Security Assessment: Action Required for KAT 2026.3 (362040)",
+                "created_date": "2026-09-22 14:44:09",
+                "event_string": "Email",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": null,
+                "new_value_str": "<b>To :</b> go-oiuytdrtfyuio@abcd.com||Hi Security Team,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Security resource review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>"
+            },
+            {
+                "id": 2637,
+                "event": 1,
+                "old_value": "70",
+                "new_value": "11",
+                "response_for": "request_status",
+                "created_date": "2026-09-22 14:41:27",
+                "event_string": "Status",
+                "created_by_name": "latname Zanzane",
+                "user_role": "Security Resource",
+                "old_value_str": "Corrections Required",
+                "new_value_str": "Assessment in Progress"
+            },
+            {
+                "id": 2638,
+                "event": 1,
+                "old_value": "64",
+                "new_value": "65",
+                "response_for": "request_sub_status",
+                "created_date": "2026-09-22 14:41:27",
+                "event_string": "Status",
+                "created_by_name": "latname Zanzane",
+                "user_role": "Security Resource",
+                "old_value_str": "Security Resource Review",
+                "new_value_str": "Solution Team Review"
+            },
+            {
+                "id": 2639,
+                "event": 4,
+                "old_value": null,
+                "new_value": "<b>To :</b> vtm@abcd.com||Hi latname Zanzane,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Solution team review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>",
+                "response_for": "Global Security Assessment: Action Required for KAT 2026.3 (362040)",
+                "created_date": "2026-09-22 14:41:27",
+                "event_string": "Email",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": null,
+                "new_value_str": "<b>To :</b> vtm@abcd.com||Hi latname Zanzane,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Solution team review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>"
+            },
+            {
+                "id": 2633,
+                "event": 1,
+                "old_value": "54",
+                "new_value": "70",
+                "response_for": "request_status",
+                "created_date": "2026-09-22 14:40:54",
+                "event_string": "Status",
+                "created_by_name": "latname Zanzane",
+                "user_role": "GISG Leadership",
+                "old_value_str": "Final GISG Leadership Review",
+                "new_value_str": "Corrections Required"
+            },
+            {
+                "id": 2634,
+                "event": 1,
+                "old_value": "54",
+                "new_value": "64",
+                "response_for": "request_sub_status",
+                "created_date": "2026-09-22 14:40:54",
+                "event_string": "Status",
+                "created_by_name": "latname Zanzane",
+                "user_role": "GISG Leadership",
+                "old_value_str": "Final GISG Leadership Review",
+                "new_value_str": "Security Resource Review"
+            },
+            {
+                "id": 2636,
+                "event": 4,
+                "old_value": null,
+                "new_value": "<b>To :</b> go-oiuytdrtfyuio@abcd.com||Hi Security Team,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Corrections required<br>\n                            Security assessment request sub-status: Security resource review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>",
+                "response_for": "Global Security Assessment: Action Required for KAT 2026.3 (362040)",
+                "created_date": "2026-09-22 14:40:54",
+                "event_string": "Email",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": null,
+                "new_value_str": "<b>To :</b> go-oiuytdrtfyuio@abcd.com||Hi Security Team,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Corrections required<br>\n                            Security assessment request sub-status: Security resource review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>"
+            },
+            {
+                "id": 2631,
+                "event": 7,
+                "old_value": "MEDIUM",
+                "new_value": "MEDIUM",
+                "response_for": "SAR overall risk",
+                "created_date": "2026-09-22 14:40:54",
+                "event_string": "Response provided",
+                "created_by_name": "latname Zanzane",
+                "user_role": "GISG Leadership",
+                "old_value_str": "MEDIUM",
+                "new_value_str": "MEDIUM"
+            },
+            {
+                "id": 2632,
+                "event": 12,
+                "old_value": "2",
+                "new_value": "3",
+                "response_for": "ATO Status",
+                "created_date": "2026-09-22 14:40:54",
+                "event_string": "ATO Status Event",
+                "created_by_name": "latname Zanzane",
+                "user_role": "GISG Leadership",
+                "old_value_str": "Compliant",
+                "new_value_str": "At Risk"
+            },
+            {
+                "id": 2628,
+                "event": 1,
+                "old_value": "11",
+                "new_value": "54",
+                "response_for": "request_status",
+                "created_date": "2026-09-22 14:40:18",
+                "event_string": "Status",
+                "created_by_name": "latname Zanzane",
+                "user_role": "Security Resource",
+                "old_value_str": "Assessment in Progress",
+                "new_value_str": "Final GISG Leadership Review"
+            },
+            {
+                "id": 2629,
+                "event": 4,
+                "old_value": null,
+                "new_value": "<b>To :</b> ayookeowo@abcd.com,jsynovec@abcd.com||Hi ,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Final GISG Leadership review<br>\n                            Security assessment request sub-status: Final GISG Leadership review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>",
+                "response_for": "Global Security Assessment: Action Required for KAT 2026.3 (362040)",
+                "created_date": "2026-09-22 14:40:18",
+                "event_string": "Email",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": null,
+                "new_value_str": "<b>To :</b> ayookeowo@abcd.com,jsynovec@abcd.com||Hi ,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Final GISG Leadership review<br>\n                            Security assessment request sub-status: Final GISG Leadership review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>"
+            },
+            {
+                "id": 2626,
+                "event": 1,
+                "old_value": "65",
+                "new_value": "64",
+                "response_for": "request_sub_status",
+                "created_date": "2026-09-22 14:40:05",
+                "event_string": "Status",
+                "created_by_name": "latname Zanzane",
+                "user_role": "Solution Team",
+                "old_value_str": "Solution Team Review",
+                "new_value_str": "Security Resource Review"
+            },
+            {
+                "id": 2625,
+                "event": 4,
+                "old_value": null,
+                "new_value": "<b>To :</b> go-oiuytdrtfyuio@abcd.com||Hi Security Team,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Security resource review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>",
+                "response_for": "Global Security Assessment: Action Required for KAT 2026.3 (362040)",
+                "created_date": "2026-09-22 14:40:05",
+                "event_string": "Email",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": null,
+                "new_value_str": "<b>To :</b> go-oiuytdrtfyuio@abcd.com||Hi Security Team,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Security resource review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>"
+            },
+            {
+                "id": 2623,
+                "event": 12,
+                "old_value": "1",
+                "new_value": "2",
+                "response_for": "ATO Status",
+                "created_date": "2026-09-22 14:39:38",
+                "event_string": "ATO Status Event",
+                "created_by_name": "latname Zanzane",
+                "user_role": "Security Resource",
+                "old_value_str": "Provisional",
+                "new_value_str": "Compliant"
+            },
+            {
+                "id": 2621,
+                "event": 1,
+                "old_value": "64",
+                "new_value": "65",
+                "response_for": "request_sub_status",
+                "created_date": "2026-09-22 14:39:37",
+                "event_string": "Status",
+                "created_by_name": "latname Zanzane",
+                "user_role": "Security Resource",
+                "old_value_str": "Security Resource Review",
+                "new_value_str": "Solution Team Review"
+            },
+            {
+                "id": 2622,
+                "event": 4,
+                "old_value": null,
+                "new_value": "<b>To :</b> vtm@abcd.com||Hi latname Zanzane,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Solution team review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>",
+                "response_for": "Global Security Assessment: Action Required for KAT 2026.3 (362040)",
+                "created_date": "2026-09-22 14:39:37",
+                "event_string": "Email",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": null,
+                "new_value_str": "<b>To :</b> vtm@abcd.com||Hi latname Zanzane,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Solution team review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>"
+            },
+            {
+                "id": 2619,
+                "event": 1,
+                "old_value": "65",
+                "new_value": "64",
+                "response_for": "request_sub_status",
+                "created_date": "2026-09-22 14:39:18",
+                "event_string": "Status",
+                "created_by_name": "latname Zanzane",
+                "user_role": "Solution Team",
+                "old_value_str": "Solution Team Review",
+                "new_value_str": "Security Resource Review"
+            },
+            {
+                "id": 2618,
+                "event": 4,
+                "old_value": null,
+                "new_value": "<b>To :</b> go-oiuytdrtfyuio@abcd.com||Hi Security Team,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Security resource review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>",
+                "response_for": "Global Security Assessment: Action Required for KAT 2026.3 (362040)",
+                "created_date": "2026-09-22 14:39:18",
+                "event_string": "Email",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": null,
+                "new_value_str": "<b>To :</b> go-oiuytdrtfyuio@abcd.com||Hi Security Team,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Security resource review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>"
+            },
+            {
+                "id": 2613,
+                "event": 1,
+                "old_value": "64",
+                "new_value": "11",
+                "response_for": "request_status",
+                "created_date": "2026-09-22 14:38:19",
+                "event_string": "Status",
+                "created_by_name": "latname Zanzane",
+                "user_role": "Security Resource",
+                "old_value_str": "Security Resource Review",
+                "new_value_str": "Assessment in Progress"
+            },
+            {
+                "id": 2614,
+                "event": 1,
+                "old_value": "64",
+                "new_value": "65",
+                "response_for": "request_sub_status",
+                "created_date": "2026-09-22 14:38:19",
+                "event_string": "Status",
+                "created_by_name": "latname Zanzane",
+                "user_role": "Security Resource",
+                "old_value_str": "Security Resource Review",
+                "new_value_str": "Solution Team Review"
+            },
+            {
+                "id": 2615,
+                "event": 4,
+                "old_value": null,
+                "new_value": "<b>To :</b> vtm@abcd.com||Hi latname Zanzane,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Solution team review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>",
+                "response_for": "Global Security Assessment: Action Required for KAT 2026.3 (362040)",
+                "created_date": "2026-09-22 14:38:19",
+                "event_string": "Email",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": null,
+                "new_value_str": "<b>To :</b> vtm@abcd.com||Hi latname Zanzane,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Solution team review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>"
+            },
+            {
+                "id": 2616,
+                "event": 12,
+                "old_value": "3",
+                "new_value": "1",
+                "response_for": "ATO Status",
+                "created_date": "2026-09-22 14:38:19",
+                "event_string": "ATO Status Event",
+                "created_by_name": "latname Zanzane",
+                "user_role": "Security Resource",
+                "old_value_str": "At Risk",
+                "new_value_str": "Provisional"
+            },
+            {
+                "id": 2611,
+                "event": 1,
+                "old_value": "65",
+                "new_value": "64",
+                "response_for": "request_sub_status",
+                "created_date": "2026-09-22 14:37:57",
+                "event_string": "Status",
+                "created_by_name": "latname Zanzane",
+                "user_role": "Solution Team",
+                "old_value_str": "Solution Team Review",
+                "new_value_str": "Security Resource Review"
+            },
+            {
+                "id": 2610,
+                "event": 4,
+                "old_value": null,
+                "new_value": "<b>To :</b> go-oiuytdrtfyuio@abcd.com||Hi Security Team,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Security resource review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>",
+                "response_for": "Global Security Assessment: Action Required for KAT 2026.3 (362040)",
+                "created_date": "2026-09-22 14:37:57",
+                "event_string": "Email",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": null,
+                "new_value_str": "<b>To :</b> go-oiuytdrtfyuio@abcd.com||Hi Security Team,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Security resource review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>"
+            },
+            {
+                "id": 2605,
+                "event": 1,
+                "old_value": "64",
+                "new_value": "11",
+                "response_for": "request_status",
+                "created_date": "2026-09-22 14:36:16",
+                "event_string": "Status",
+                "created_by_name": "latname Zanzane",
+                "user_role": "Security Resource",
+                "old_value_str": "Security Resource Review",
+                "new_value_str": "Assessment in Progress"
+            },
+            {
+                "id": 2606,
+                "event": 1,
+                "old_value": "64",
+                "new_value": "65",
+                "response_for": "request_sub_status",
+                "created_date": "2026-09-22 14:36:16",
+                "event_string": "Status",
+                "created_by_name": "latname Zanzane",
+                "user_role": "Security Resource",
+                "old_value_str": "Security Resource Review",
+                "new_value_str": "Solution Team Review"
+            },
+            {
+                "id": 2607,
+                "event": 4,
+                "old_value": null,
+                "new_value": "<b>To :</b> vtm@abcd.com||Hi latname Zanzane,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Solution team review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>",
+                "response_for": "Global Security Assessment: Action Required for KAT 2026.3 (362040)",
+                "created_date": "2026-09-22 14:36:16",
+                "event_string": "Email",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": null,
+                "new_value_str": "<b>To :</b> vtm@abcd.com||Hi latname Zanzane,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Solution team review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>"
+            },
+            {
+                "id": 2608,
+                "event": 12,
+                "old_value": "1",
+                "new_value": "3",
+                "response_for": "ATO Status",
+                "created_date": "2026-09-22 14:36:16",
+                "event_string": "ATO Status Event",
+                "created_by_name": "latname Zanzane",
+                "user_role": "Security Resource",
+                "old_value_str": "Provisional",
+                "new_value_str": "At Risk"
+            },
+            {
+                "id": 2603,
+                "event": 1,
+                "old_value": "65",
+                "new_value": "64",
+                "response_for": "request_sub_status",
+                "created_date": "2026-09-22 13:38:02",
+                "event_string": "Status",
+                "created_by_name": "latname Zanzane",
+                "user_role": "Solution Team",
+                "old_value_str": "Solution Team Review",
+                "new_value_str": "Security Resource Review"
+            },
+            {
+                "id": 2602,
+                "event": 4,
+                "old_value": null,
+                "new_value": "<b>To :</b> go-oiuytdrtfyuio@abcd.com||Hi Security Team,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Security resource review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>",
+                "response_for": "Global Security Assessment: Action Required for KAT 2026.3 (362040)",
+                "created_date": "2026-09-22 13:38:02",
+                "event_string": "Email",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": null,
+                "new_value_str": "<b>To :</b> go-oiuytdrtfyuio@abcd.com||Hi Security Team,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Security resource review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>"
+            },
+            {
+                "id": 2597,
+                "event": 1,
+                "old_value": "64",
+                "new_value": "11",
+                "response_for": "request_status",
+                "created_date": "2026-09-22 13:36:48",
+                "event_string": "Status",
+                "created_by_name": "latname Zanzane",
+                "user_role": "Security Resource",
+                "old_value_str": "Security Resource Review",
+                "new_value_str": "Assessment in Progress"
+            },
+            {
+                "id": 2598,
+                "event": 1,
+                "old_value": "64",
+                "new_value": "65",
+                "response_for": "request_sub_status",
+                "created_date": "2026-09-22 13:36:48",
+                "event_string": "Status",
+                "created_by_name": "latname Zanzane",
+                "user_role": "Security Resource",
+                "old_value_str": "Security Resource Review",
+                "new_value_str": "Solution Team Review"
+            },
+            {
+                "id": 2599,
+                "event": 4,
+                "old_value": null,
+                "new_value": "<b>To :</b> vtm@abcd.com||Hi latname Zanzane,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Solution team review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>",
+                "response_for": "Global Security Assessment: Action Required for KAT 2026.3 (362040)",
+                "created_date": "2026-09-22 13:36:48",
+                "event_string": "Email",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": null,
+                "new_value_str": "<b>To :</b> vtm@abcd.com||Hi latname Zanzane,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Solution team review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>"
+            },
+            {
+                "id": 2600,
+                "event": 12,
+                "old_value": "2",
+                "new_value": "1",
+                "response_for": "ATO Status",
+                "created_date": "2026-09-22 13:36:48",
+                "event_string": "ATO Status Event",
+                "created_by_name": "latname Zanzane",
+                "user_role": "Security Resource",
+                "old_value_str": "Compliant",
+                "new_value_str": "Provisional"
+            },
+            {
+                "id": 2593,
+                "event": 1,
+                "old_value": "54",
+                "new_value": "70",
+                "response_for": "request_status",
+                "created_date": "2026-09-22 13:35:51",
+                "event_string": "Status",
+                "created_by_name": "GISG Lead",
+                "user_role": "GISG Leadership",
+                "old_value_str": "Final GISG Leadership Review",
+                "new_value_str": "Corrections Required"
+            },
+            {
+                "id": 2594,
+                "event": 1,
+                "old_value": "54",
+                "new_value": "64",
+                "response_for": "request_sub_status",
+                "created_date": "2026-09-22 13:35:51",
+                "event_string": "Status",
+                "created_by_name": "GISG Lead",
+                "user_role": "GISG Leadership",
+                "old_value_str": "Final GISG Leadership Review",
+                "new_value_str": "Security Resource Review"
+            },
+            {
+                "id": 2596,
+                "event": 4,
+                "old_value": null,
+                "new_value": "<b>To :</b> go-oiuytdrtfyuio@abcd.com||Hi Security Team,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Corrections required<br>\n                            Security assessment request sub-status: Security resource review<br>\n                            Comment provided by GISG Lead: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>",
+                "response_for": "Global Security Assessment: Action Required for KAT 2026.3 (362040)",
+                "created_date": "2026-09-22 13:35:51",
+                "event_string": "Email",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": null,
+                "new_value_str": "<b>To :</b> go-oiuytdrtfyuio@abcd.com||Hi Security Team,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Corrections required<br>\n                            Security assessment request sub-status: Security resource review<br>\n                            Comment provided by GISG Lead: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>"
+            },
+            {
+                "id": 2592,
+                "event": 7,
+                "old_value": "MEDIUM",
+                "new_value": "MEDIUM",
+                "response_for": "SAR overall risk",
+                "created_date": "2026-09-22 13:35:51",
+                "event_string": "Response provided",
+                "created_by_name": "GISG Lead",
+                "user_role": "GISG Leadership",
+                "old_value_str": "MEDIUM",
+                "new_value_str": "MEDIUM"
+            },
+            {
+                "id": 2589,
+                "event": 1,
+                "old_value": "11",
+                "new_value": "54",
+                "response_for": "request_status",
+                "created_date": "2026-09-22 13:32:26",
+                "event_string": "Status",
+                "created_by_name": "Sec Res",
+                "user_role": "Security Resource",
+                "old_value_str": "Assessment in Progress",
+                "new_value_str": "Final GISG Leadership Review"
+            },
+            {
+                "id": 2590,
+                "event": 4,
+                "old_value": null,
+                "new_value": "<b>To :</b> ayookeowo@abcd.com,jsynovec@abcd.com||Hi ,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Final GISG Leadership review<br>\n                            Security assessment request sub-status: Final GISG Leadership review<br>\n                            Comment provided by Sec Res: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>",
+                "response_for": "Global Security Assessment: Action Required for KAT 2026.3 (362040)",
+                "created_date": "2026-09-22 13:32:26",
+                "event_string": "Email",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": null,
+                "new_value_str": "<b>To :</b> ayookeowo@abcd.com,jsynovec@abcd.com||Hi ,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Final GISG Leadership review<br>\n                            Security assessment request sub-status: Final GISG Leadership review<br>\n                            Comment provided by Sec Res: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>"
+            },
+            {
+                "id": 2587,
+                "event": 1,
+                "old_value": "65",
+                "new_value": "64",
+                "response_for": "request_sub_status",
+                "created_date": "2026-09-22 13:31:53",
+                "event_string": "Status",
+                "created_by_name": "latname Zanzane",
+                "user_role": "Solution Team",
+                "old_value_str": "Solution Team Review",
+                "new_value_str": "Security Resource Review"
+            },
+            {
+                "id": 2586,
+                "event": 4,
+                "old_value": null,
+                "new_value": "<b>To :</b> go-oiuytdrtfyuio@abcd.com||Hi Security Team,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Security resource review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>",
+                "response_for": "Global Security Assessment: Action Required for KAT 2026.3 (362040)",
+                "created_date": "2026-09-22 13:31:53",
+                "event_string": "Email",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": null,
+                "new_value_str": "<b>To :</b> go-oiuytdrtfyuio@abcd.com||Hi Security Team,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Security resource review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>"
+            },
+            {
+                "id": 2581,
+                "event": 1,
+                "old_value": "64",
+                "new_value": "11",
+                "response_for": "request_status",
+                "created_date": "2026-09-22 13:31:25",
+                "event_string": "Status",
+                "created_by_name": "Sec Res",
+                "user_role": "Security Resource",
+                "old_value_str": "Security Resource Review",
+                "new_value_str": "Assessment in Progress"
+            },
+            {
+                "id": 2582,
+                "event": 1,
+                "old_value": "64",
+                "new_value": "65",
+                "response_for": "request_sub_status",
+                "created_date": "2026-09-22 13:31:25",
+                "event_string": "Status",
+                "created_by_name": "Sec Res",
+                "user_role": "Security Resource",
+                "old_value_str": "Security Resource Review",
+                "new_value_str": "Solution Team Review"
+            },
+            {
+                "id": 2583,
+                "event": 4,
+                "old_value": null,
+                "new_value": "<b>To :</b> vtm@abcd.com||Hi latname Zanzane,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Solution team review<br>\n                            Comment provided by Sec Res: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>",
+                "response_for": "Global Security Assessment: Action Required for KAT 2026.3 (362040)",
+                "created_date": "2026-09-22 13:31:25",
+                "event_string": "Email",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": null,
+                "new_value_str": "<b>To :</b> vtm@abcd.com||Hi latname Zanzane,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Solution team review<br>\n                            Comment provided by Sec Res: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>"
+            },
+            {
+                "id": 2584,
+                "event": 12,
+                "old_value": "1",
+                "new_value": "2",
+                "response_for": "ATO Status",
+                "created_date": "2026-09-22 13:31:25",
+                "event_string": "ATO Status Event",
+                "created_by_name": "Sec Res",
+                "user_role": "Security Resource",
+                "old_value_str": "Provisional",
+                "new_value_str": "Compliant"
+            },
+            {
+                "id": 2579,
+                "event": 1,
+                "old_value": "65",
+                "new_value": "64",
+                "response_for": "request_sub_status",
+                "created_date": "2026-09-22 13:29:50",
+                "event_string": "Status",
+                "created_by_name": "latname Zanzane",
+                "user_role": "Solution Team",
+                "old_value_str": "Solution Team Review",
+                "new_value_str": "Security Resource Review"
+            },
+            {
+                "id": 2578,
+                "event": 4,
+                "old_value": null,
+                "new_value": "<b>To :</b> go-oiuytdrtfyuio@abcd.com||Hi Security Team,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Security resource review<br>\n                            Comment provided by latname Zanzane: sending to sec res team<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>",
+                "response_for": "Global Security Assessment: Action Required for KAT 2026.3 (362040)",
+                "created_date": "2026-09-22 13:29:50",
+                "event_string": "Email",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": null,
+                "new_value_str": "<b>To :</b> go-oiuytdrtfyuio@abcd.com||Hi Security Team,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Security resource review<br>\n                            Comment provided by latname Zanzane: sending to sec res team<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>"
+            },
+            {
+                "id": 2574,
+                "event": 1,
+                "old_value": "64",
+                "new_value": "11",
+                "response_for": "request_status",
+                "created_date": "2026-09-22 13:22:23",
+                "event_string": "Status",
+                "created_by_name": "Sec Res",
+                "user_role": "Security Resource",
+                "old_value_str": "Security Resource Review",
+                "new_value_str": "Assessment in Progress"
+            },
+            {
+                "id": 2575,
+                "event": 1,
+                "old_value": "64",
+                "new_value": "65",
+                "response_for": "request_sub_status",
+                "created_date": "2026-09-22 13:22:23",
+                "event_string": "Status",
+                "created_by_name": "Sec Res",
+                "user_role": "Security Resource",
+                "old_value_str": "Security Resource Review",
+                "new_value_str": "Solution Team Review"
+            },
+            {
+                "id": 2576,
+                "event": 4,
+                "old_value": null,
+                "new_value": "<b>To :</b> vtm@abcd.com||Hi latname Zanzane,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Solution team review<br>\n                            Comment provided by Sec Res: 2nd change to ato<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>",
+                "response_for": "Global Security Assessment: Action Required for KAT 2026.3 (362040)",
+                "created_date": "2026-09-22 13:22:23",
+                "event_string": "Email",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": null,
+                "new_value_str": "<b>To :</b> vtm@abcd.com||Hi latname Zanzane,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Solution team review<br>\n                            Comment provided by Sec Res: 2nd change to ato<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>"
+            },
+            {
+                "id": 2572,
+                "event": 1,
+                "old_value": "65",
+                "new_value": "64",
+                "response_for": "request_sub_status",
+                "created_date": "2026-09-22 13:21:39",
+                "event_string": "Status",
+                "created_by_name": "latname Zanzane",
+                "user_role": "Solution Team",
+                "old_value_str": "Solution Team Review",
+                "new_value_str": "Security Resource Review"
+            },
+            {
+                "id": 2571,
+                "event": 4,
+                "old_value": null,
+                "new_value": "<b>To :</b> go-oiuytdrtfyuio@abcd.com||Hi Security Team,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Security resource review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>",
+                "response_for": "Global Security Assessment: Action Required for KAT 2026.3 (362040)",
+                "created_date": "2026-09-22 13:21:39",
+                "event_string": "Email",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": null,
+                "new_value_str": "<b>To :</b> go-oiuytdrtfyuio@abcd.com||Hi Security Team,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Security resource review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>"
+            },
+            {
+                "id": 2567,
+                "event": 1,
+                "old_value": "64",
+                "new_value": "11",
+                "response_for": "request_status",
+                "created_date": "2026-09-22 13:21:06",
+                "event_string": "Status",
+                "created_by_name": "Sec Res",
+                "user_role": "Security Resource",
+                "old_value_str": "Security Resource Review",
+                "new_value_str": "Assessment in Progress"
+            },
+            {
+                "id": 2568,
+                "event": 1,
+                "old_value": "64",
+                "new_value": "65",
+                "response_for": "request_sub_status",
+                "created_date": "2026-09-22 13:21:06",
+                "event_string": "Status",
+                "created_by_name": "Sec Res",
+                "user_role": "Security Resource",
+                "old_value_str": "Security Resource Review",
+                "new_value_str": "Solution Team Review"
+            },
+            {
+                "id": 2569,
+                "event": 4,
+                "old_value": null,
+                "new_value": "<b>To :</b> vtm@abcd.com||Hi latname Zanzane,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Solution team review<br>\n                            Comment provided by Sec Res: changes to ato status<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>",
+                "response_for": "Global Security Assessment: Action Required for KAT 2026.3 (362040)",
+                "created_date": "2026-09-22 13:21:06",
+                "event_string": "Email",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": null,
+                "new_value_str": "<b>To :</b> vtm@abcd.com||Hi latname Zanzane,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Solution team review<br>\n                            Comment provided by Sec Res: changes to ato status<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>"
+            },
+            {
+                "id": 2565,
+                "event": 1,
+                "old_value": "65",
+                "new_value": "64",
+                "response_for": "request_sub_status",
+                "created_date": "2026-09-22 13:20:21",
+                "event_string": "Status",
+                "created_by_name": "latname Zanzane",
+                "user_role": "Solution Team",
+                "old_value_str": "Solution Team Review",
+                "new_value_str": "Security Resource Review"
+            },
+            {
+                "id": 2564,
+                "event": 4,
+                "old_value": null,
+                "new_value": "<b>To :</b> go-oiuytdrtfyuio@abcd.com||Hi Security Team,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Security resource review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>",
+                "response_for": "Global Security Assessment: Action Required for KAT 2026.3 (362040)",
+                "created_date": "2026-09-22 13:20:21",
+                "event_string": "Email",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": null,
+                "new_value_str": "<b>To :</b> go-oiuytdrtfyuio@abcd.com||Hi Security Team,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Security resource review<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>"
+            },
+            {
+                "id": 2560,
+                "event": 1,
+                "old_value": "64",
+                "new_value": "11",
+                "response_for": "request_status",
+                "created_date": "2026-09-22 13:18:24",
+                "event_string": "Status",
+                "created_by_name": "Sec Res",
+                "user_role": "Security Resource",
+                "old_value_str": "Security Resource Review",
+                "new_value_str": "Assessment in Progress"
+            },
+            {
+                "id": 2561,
+                "event": 1,
+                "old_value": "64",
+                "new_value": "65",
+                "response_for": "request_sub_status",
+                "created_date": "2026-09-22 13:18:24",
+                "event_string": "Status",
+                "created_by_name": "Sec Res",
+                "user_role": "Security Resource",
+                "old_value_str": "Security Resource Review",
+                "new_value_str": "Solution Team Review"
+            },
+            {
+                "id": 2562,
+                "event": 4,
+                "old_value": null,
+                "new_value": "<b>To :</b> vtm@abcd.com||Hi latname Zanzane,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Solution team review<br>\n                            Comment provided by Sec Res: sending to sol team 2<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>",
+                "response_for": "Global Security Assessment: Action Required for KAT 2026.3 (362040)",
+                "created_date": "2026-09-22 13:18:24",
+                "event_string": "Email",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": null,
+                "new_value_str": "<b>To :</b> vtm@abcd.com||Hi latname Zanzane,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Solution team review<br>\n                            Comment provided by Sec Res: sending to sol team 2<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>"
+            },
+            {
+                "id": 2558,
+                "event": 1,
+                "old_value": "65",
+                "new_value": "64",
+                "response_for": "request_sub_status",
+                "created_date": "2026-09-22 13:17:50",
+                "event_string": "Status",
+                "created_by_name": "latname Zanzane",
+                "user_role": "Solution Team",
+                "old_value_str": "Solution Team Review",
+                "new_value_str": "Security Resource Review"
+            },
+            {
+                "id": 2557,
+                "event": 4,
+                "old_value": null,
+                "new_value": "<b>To :</b> go-oiuytdrtfyuio@abcd.com||Hi Security Team,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Security resource review<br>\n                            Comment provided by latname Zanzane: changing this<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>",
+                "response_for": "Global Security Assessment: Action Required for KAT 2026.3 (362040)",
+                "created_date": "2026-09-22 13:17:50",
+                "event_string": "Email",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": null,
+                "new_value_str": "<b>To :</b> go-oiuytdrtfyuio@abcd.com||Hi Security Team,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Security resource review<br>\n                            Comment provided by latname Zanzane: changing this<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>"
+            },
+            {
+                "id": 2553,
+                "event": 1,
+                "old_value": "63",
+                "new_value": "11",
+                "response_for": "request_status",
+                "created_date": "2026-09-22 13:17:06",
+                "event_string": "Status",
+                "created_by_name": "Sec Res",
+                "user_role": "Security Resource",
+                "old_value_str": "AI Evaluation Completed",
+                "new_value_str": "Assessment in Progress"
+            },
+            {
+                "id": 2554,
+                "event": 1,
+                "old_value": "63",
+                "new_value": "65",
+                "response_for": "request_sub_status",
+                "created_date": "2026-09-22 13:17:06",
+                "event_string": "Status",
+                "created_by_name": "Sec Res",
+                "user_role": "Security Resource",
+                "old_value_str": "AI Evaluation Completed",
+                "new_value_str": "Solution Team Review"
+            },
+            {
+                "id": 2555,
+                "event": 4,
+                "old_value": null,
+                "new_value": "<b>To :</b> vtm@abcd.com||Hi latname Zanzane,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Solution team review<br>\n                            Comment provided by Sec Res: sending this to sol team<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>",
+                "response_for": "Global Security Assessment: Action Required for KAT 2026.3 (362040)",
+                "created_date": "2026-09-22 13:17:06",
+                "event_string": "Email",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": null,
+                "new_value_str": "<b>To :</b> vtm@abcd.com||Hi latname Zanzane,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: Solution team review<br>\n                            Comment provided by Sec Res: sending this to sol team<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>"
+            },
+            {
+                "id": 2551,
+                "event": 1,
+                "old_value": "62",
+                "new_value": "63",
+                "response_for": "request_sub_status",
+                "created_date": "2026-09-22 12:04:47",
+                "event_string": "Status",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": "AI Evaluation in Progress",
+                "new_value_str": "AI Evaluation Completed"
+            },
+            {
+                "id": 2552,
+                "event": 4,
+                "old_value": null,
+                "new_value": "<b>To :</b> go-oiuytdrtfyuio@abcd.com||Hi Security Team,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: AI evaluation completed<br>\n                            Comment provided by GSSR System: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>",
+                "response_for": "Global Security Assessment: Action Required for KAT 2026.3 (362040)",
+                "created_date": "2026-09-22 12:04:47",
+                "event_string": "Email",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": null,
+                "new_value_str": "<b>To :</b> go-oiuytdrtfyuio@abcd.com||Hi Security Team,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: AI evaluation completed<br>\n                            Comment provided by GSSR System: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>"
+            },
+            {
+                "id": 2550,
+                "event": 11,
+                "old_value": "-",
+                "new_value": "MEDIUM",
+                "response_for": "SAR overall risk",
+                "created_date": "2026-09-22 12:04:47",
+                "event_string": "AI",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": "-",
+                "new_value_str": "MEDIUM"
+            },
+            {
+                "id": 2547,
+                "event": 11,
+                "old_value": "-",
+                "new_value": "The assessed solution is a vendor-managed secure messaging platform, Signal, designated as the GSOC/GISG out-of-band communication capability for cyber incident response, crisis management, and operational continuity when enterprise collaboration services are unavailable or untrusted. The deployment is limited to native Signal client consumption on Intune-managed corporate endpoints, with no abcd-developed applications, APIs, integrations, middleware, or supporting infrastructure; all cryptographic processing, message transport, and protocol operations occur within the Signal service boundary. Identity and authorization are implemented through Signal’s device-bound registration and cryptographic identity keys, combined with GSOC Engineering-managed group membership and Cyber Commander approval for participation. Messages are protected end-to-end by the Signal Protocol, with TLS for transport and encrypted local storage on endpoints, while long-term incident evidence is captured via controlled screenshots and preserved in the SecOps incident journal, which is the authoritative system of record. The solution is classified as abcd Confidential with BC2 Critical business impact and is intended for internal operational personnel and defined user populations as documented in the SAR.",
+                "response_for": "SAR solution summary",
+                "created_date": "2026-09-22 12:04:43",
+                "event_string": "AI",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": "-",
+                "new_value_str": "The assessed solution is a vendor-managed secure messaging platform, Signal, designated as the GSOC/GISG out-of-band communication capability for cyber incident response, crisis management, and operational continuity when enterprise collaboration services are unavailable or untrusted. The deployment is limited to native Signal client consumption on Intune-managed corporate endpoints, with no abcd-developed applications, APIs, integrations, middleware, or supporting infrastructure; all cryptographic processing, message transport, and protocol operations occur within the Signal service boundary. Identity and authorization are implemented through Signal’s device-bound registration and cryptographic identity keys, combined with GSOC Engineering-managed group membership and Cyber Commander approval for participation. Messages are protected end-to-end by the Signal Protocol, with TLS for transport and encrypted local storage on endpoints, while long-term incident evidence is captured via controlled screenshots and preserved in the SecOps incident journal, which is the authoritative system of record. The solution is classified as abcd Confidential with BC2 Critical business impact and is intended for internal operational personnel and defined user populations as documented in the SAR."
+            },
+            {
+                "id": 2548,
+                "event": 11,
+                "old_value": "-",
+                "new_value": "Internal - Client Service Delivery, Internal - Client Support Service, External - Third Party (Vendor), External - Public, External - Client",
+                "response_for": "SAR users section",
+                "created_date": "2026-09-22 12:04:43",
+                "event_string": "AI",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": "-",
+                "new_value_str": "Internal - Client Service Delivery, Internal - Client Support Service, External - Third Party (Vendor), External - Public, External - Client"
+            },
+            {
+                "id": 2549,
+                "event": 11,
+                "old_value": "-",
+                "new_value": "The solution supports cyber incident response and crisis management communications, making it operationally significant despite relying on Signal as a fully vendor-managed SaaS platform with no abcd-hosted components. Data handled through the platform is classified as abcd Confidential, with incident-related client and potentially sensitive information transiently processed before evidentiary records are transferred to SecOps. Business and risk stakeholders should note the clear separation of trust boundaries: Signal manages messaging and cryptographic operations, while abcd controls endpoints, group membership, and incident records. The absence of vendor SOC reports and penetration test artifacts means assurance relies on the Signal Protocol’s public documentation and ongoing security research rather than contractual reporting. Operational continuity depends on documented SecOps workflows for evidence capture, retention, and incident lifecycle management, as Signal is not the authoritative logging or evidentiary platform. These factors should be considered in ongoing risk reviews, procurement or third-party assurance discussions, and incident response governance.",
+                "response_for": "SAR additional business considerations",
+                "created_date": "2026-09-22 12:04:43",
+                "event_string": "AI",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": "-",
+                "new_value_str": "The solution supports cyber incident response and crisis management communications, making it operationally significant despite relying on Signal as a fully vendor-managed SaaS platform with no abcd-hosted components. Data handled through the platform is classified as abcd Confidential, with incident-related client and potentially sensitive information transiently processed before evidentiary records are transferred to SecOps. Business and risk stakeholders should note the clear separation of trust boundaries: Signal manages messaging and cryptographic operations, while abcd controls endpoints, group membership, and incident records. The absence of vendor SOC reports and penetration test artifacts means assurance relies on the Signal Protocol’s public documentation and ongoing security research rather than contractual reporting. Operational continuity depends on documented SecOps workflows for evidence capture, retention, and incident lifecycle management, as Signal is not the authoritative logging or evidentiary platform. These factors should be considered in ongoing risk reviews, procurement or third-party assurance discussions, and incident response governance."
+            },
+            {
+                "id": 2543,
+                "event": 1,
+                "old_value": "42",
+                "new_value": "11",
+                "response_for": "request_status",
+                "created_date": "2026-09-22 12:03:35",
+                "event_string": "Status",
+                "created_by_name": "latname Zanzane",
+                "user_role": "System Super Admin",
+                "old_value_str": "Intake Verification",
+                "new_value_str": "Assessment in Progress"
+            },
+            {
+                "id": 2546,
+                "event": 1,
+                "old_value": "None",
+                "new_value": "62",
+                "response_for": "request_sub_status",
+                "created_date": "2026-09-22 12:03:35",
+                "event_string": "Status",
+                "created_by_name": "latname Zanzane",
+                "user_role": "GSSR System",
+                "old_value_str": "None",
+                "new_value_str": "AI Evaluation in Progress"
+            },
+            {
+                "id": 2545,
+                "event": 2,
+                "old_value": "-",
+                "new_value": "done",
+                "response_for": "Intake Event",
+                "created_date": "2026-09-22 12:03:35",
+                "event_string": "Comment",
+                "created_by_name": "latname Zanzane",
+                "user_role": "System Super Admin",
+                "old_value_str": "-",
+                "new_value_str": "done"
+            },
+            {
+                "id": 2542,
+                "event": 4,
+                "old_value": null,
+                "new_value": "<b>To :</b> go-oiuytdrtfyuio@abcd.com||Hi Security Team,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: -<br>\n                            Comment provided by latname Zanzane: done<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>",
+                "response_for": "Global Security Assessment: Action Required for KAT 2026.3 (362040)",
+                "created_date": "2026-09-22 12:03:35",
+                "event_string": "Email",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": null,
+                "new_value_str": "<b>To :</b> go-oiuytdrtfyuio@abcd.com||Hi Security Team,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Assessment in progress<br>\n                            Security assessment request sub-status: -<br>\n                            Comment provided by latname Zanzane: done<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>"
+            },
+            {
+                "id": 2544,
+                "event": 7,
+                "old_value": "-",
+                "new_value": "Yes",
+                "response_for": "Are technical intake responses and artifacts sufficient to complete the Security Review?",
+                "created_date": "2026-09-22 12:03:35",
+                "event_string": "Response provided",
+                "created_by_name": "latname Zanzane",
+                "user_role": "System Super Admin",
+                "old_value_str": "-",
+                "new_value_str": "Yes"
+            },
+            {
+                "id": 2541,
+                "event": 9,
+                "old_value": "-",
+                "new_value": "done",
+                "response_for": "Approved",
+                "created_date": "2026-09-22 12:03:35",
+                "event_string": "Security Resource Comments",
+                "created_by_name": "latname Zanzane",
+                "user_role": "System Super Admin",
+                "old_value_str": "-",
+                "new_value_str": "done"
+            },
+            {
+                "id": 2540,
+                "event": 11,
+                "old_value": "-",
+                "new_value": "No",
+                "response_for": "Skip AI Evaluation",
+                "created_date": "2026-09-22 12:03:35",
+                "event_string": "AI",
+                "created_by_name": "latname Zanzane",
+                "user_role": "GSSR System",
+                "old_value_str": "-",
+                "new_value_str": "No"
+            },
+            {
+                "id": 2538,
+                "event": 4,
+                "old_value": null,
+                "new_value": "<b>To :</b> vtm@abcd.com,ccarreira@abcd.com,jpilgrim@abcd.com||Hi latname Zanzane/Christine C Gaspar/Jim Pilgrim,<br><br>\n                            This message is to inform you that a Global Security Assessment request has been submitted for KAT 2026.3 (362040).<br><br>\n                            As part of this request, you have been listed as the Solution Team/Project Manager/Business Lead and may receive notifications as the review of this solution is conducted.<br><br>\n                            No action is required at this time. However, if you would like to view this security assessment request, please reach out to the requestor (latname Zanzane) to ask that they add you as a delegate.<br><br>\n                            You may view your security assessment request at any time using the following link: <br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>",
+                "response_for": "Global Security Assessment: Intake request submitted for KAT 2026.3 (362040)",
+                "created_date": "2026-09-22 11:59:57",
+                "event_string": "Email",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": null,
+                "new_value_str": "<b>To :</b> vtm@abcd.com,ccarreira@abcd.com,jpilgrim@abcd.com||Hi latname Zanzane/Christine C Gaspar/Jim Pilgrim,<br><br>\n                            This message is to inform you that a Global Security Assessment request has been submitted for KAT 2026.3 (362040).<br><br>\n                            As part of this request, you have been listed as the Solution Team/Project Manager/Business Lead and may receive notifications as the review of this solution is conducted.<br><br>\n                            No action is required at this time. However, if you would like to view this security assessment request, please reach out to the requestor (latname Zanzane) to ask that they add you as a delegate.<br><br>\n                            You may view your security assessment request at any time using the following link: <br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>"
+            },
+            {
+                "id": 2539,
+                "event": 4,
+                "old_value": null,
+                "new_value": "<b>To :</b> go-oiuytdrtfyuio@abcd.com||Hi Security Team,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Intake Verification<br>\n                            Security assessment request sub-status: -<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>",
+                "response_for": "Global Security Assessment: Action Required for KAT 2026.3 (362040)",
+                "created_date": "2026-09-22 11:59:57",
+                "event_string": "Email",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": null,
+                "new_value_str": "<b>To :</b> go-oiuytdrtfyuio@abcd.com||Hi Security Team,<br><br>\n                            Your action is required for the KAT 2026.3 security assessment to proceed.<br><br>\n                            Security assessment request status: Intake Verification<br>\n                            Security assessment request sub-status: -<br>\n                            Comment provided by latname Zanzane: No comment provided<br><br>\n                            Please use the following link to access this security assessment and complete the actions required:<br>\n                            http://localhost:3000/requests/362040<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>"
+            },
+            {
+                "id": 2537,
+                "event": 7,
+                "old_value": "-",
+                "new_value": "Sec Res",
+                "response_for": "Security resource assignment",
+                "created_date": "2026-09-22 11:59:57",
+                "event_string": "Response provided",
+                "created_by_name": "latname Zanzane",
+                "user_role": "System Super Admin",
+                "old_value_str": "-",
+                "new_value_str": "Sec Res"
+            },
+            {
+                "id": 2536,
+                "event": 1,
+                "old_value": "0",
+                "new_value": "42",
+                "response_for": "request_status",
+                "created_date": "2026-09-22 11:59:56",
+                "event_string": "Status",
+                "created_by_name": "latname Zanzane",
+                "user_role": "System Super Admin",
+                "old_value_str": "Draft",
+                "new_value_str": "Intake Verification"
+            },
+            {
+                "id": 2534,
+                "event": 1,
+                "old_value": "-",
+                "new_value": "0",
+                "response_for": "request_status",
+                "created_date": "2026-09-22 11:43:45",
+                "event_string": "Status",
+                "created_by_name": "latname Zanzane",
+                "user_role": "System Super Admin",
+                "old_value_str": "-",
+                "new_value_str": "Draft"
+            },
+            {
+                "id": 2535,
+                "event": 4,
+                "old_value": null,
+                "new_value": "<b>To :</b> vtm@abcd.com||Hi latname Zanzane,<br><br>\n                            A new security assessment request has been logged.<br><br>\n                            The SR ID is 362040. Please use this SR ID for your future reference.<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>",
+                "response_for": "Global Security Assessment Solution Review: New Request Logged for KAT 2026.3 (362040)",
+                "created_date": "2026-09-22 11:43:45",
+                "event_string": "Email",
+                "created_by_name": "GSSR System",
+                "user_role": "GSSR System",
+                "old_value_str": null,
+                "new_value_str": "<b>To :</b> vtm@abcd.com||Hi latname Zanzane,<br><br>\n                            A new security assessment request has been logged.<br><br>\n                            The SR ID is 362040. Please use this SR ID for your future reference.<br><br>\n                            Thank you,<br><br>\n                            Global Information Security Group (GISG)<br><br><b>This is an auto generated email. Kindly do not reply to this. This mailbox will not be monitored. Please raise your request within the <a href=\"http://localhost:3000/login\">Global Security Solution Review (GSSR) tool</a> or to the <a href=\"mailto:go-fmipgsolutionrevi@abcd.Com?subject=Solution%20Review%20Queries\">GISG Solution Review Service mailbox.</a></b>"
+            },
+            {
+                "event": 3,
+                "old_value": "-",
+                "new_value": "||storage/requestor/362040/179005816164_SAR_-_abcd_Out_of_Band_Communications_-_Signal_(3).pdf",
+                "response_for": "Please provide Technical Design Document",
+                "created_date": "2026-09-22 11:43:44",
+                "event_string": "Artifacts",
+                "created_by_name": "latname Zanzane",
+                "old_value_str": "-",
+                "new_value_str": "||storage/requestor/362040/179005816164_SAR_-_abcd_Out_of_Band_Communications_-_Signal_(3).pdf"
+            },
+            {
+                "event": 3,
+                "old_value": "-",
+                "new_value": "||storage/requestor/362040/179005818985_Screenshot_2025-06-24_170531.png",
+                "response_for": "Please provide Technical Architecture Diagram",
+                "created_date": "2026-09-22 11:43:44",
+                "event_string": "Artifacts",
+                "created_by_name": "latname Zanzane",
+                "old_value_str": "-",
+                "new_value_str": "||storage/requestor/362040/179005818985_Screenshot_2025-06-24_170531.png"
+            },
+            {
+                "event": 3,
+                "old_value": "-",
+                "new_value": "||storage/requestor/362040/179005823385_Screenshot_2025-06-24_170531.png",
+                "response_for": "ISO/IES 27001",
+                "created_date": "2026-09-22 11:43:44",
+                "event_string": "Artifacts",
+                "created_by_name": "latname Zanzane",
+                "old_value_str": "-",
+                "new_value_str": "||storage/requestor/362040/179005823385_Screenshot_2025-06-24_170531.png"
+            }
+        ],
+        "page_title": "View Logs - 362040",
+        "projectName": "KAT 2026.3",
+        "solutionName": "Knowledge Authoring Tool (KAT)",
+        "solutionType": "SaaS",
+        "sgpId": "362040",
+        "total": 104
     }
-
-    STATUS_VALUES = {label: value for value, label in STATUS_LABELS.items()}
-
-    id = models.AutoField(primary_key=True)
-    header_name = models.CharField(
-        max_length=50,
-        db_index=True,
-        null=True,
-        blank=True,
-    )
-    json_data = models.JSONField(
-        default=dict,
-        blank=True,
-    )
-    request = models.ForeignKey(
-        "RequestorTeam",
-        on_delete=models.CASCADE,
-        db_column="sgp_id",
-        to_field="sgp_id",
-        related_name="sar_template_json_data",
-        null=True,
-        blank=True,
-    )
-    section_status = models.PositiveSmallIntegerField(
-        default=STATUS_DRAFT,
-    )
-    needs_refresh = models.BooleanField(default=True, db_index=True)
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        db_column="created_by",
-        related_name="sar_template_json_data_created",
-    )
-    created_date = models.DateTimeField(auto_now_add=True)
-    updated_date = models.DateTimeField(auto_now=True)
-    is_active = models.IntegerField(
-        default=1,
-        db_index=True,
-    )
-    class Meta:
-        db_table = "sar_template_json_data"
-        indexes = [
-            models.Index(
-                fields=["request", "is_active"],
-                name="sar_json_request_idx",
-            ),
-            models.Index(
-                fields=[
-                    "request",
-                    "is_active",
-                    "header_name",
-                    "-created_date",
-                ],
-                name="sar_json_lookup_idx",
-            ),
-        ]
-        ordering = ["header_name"]
-
-    def __str__(self):
-        return (
-            f"{self.request_id or 'No request'} - "
-            f"{self.header_name or 'No header'}"
-        )
-
-
-
-
-import os
-import time
-from random import randint
-from datetime import datetime
-from django.db import models
-from django.contrib.auth.hashers import make_password
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
-
-from app.crypto import decrypt_field, encrypt_field, hash_field
-from .role import Role
-
-
-def generate_id():
-    now = datetime.now()
-    formatted = now.strftime("%Y-%m%d-%H%M%S-%f")
-    return f"UID-{formatted}"
-
-
-class UserDataManager(BaseUserManager):
-    def create_user(self, email, password=None, **extra_fields):
-        if not email:
-            raise ValueError("The Email field must be set")
-
-        email = self.normalize_email(email)
-        user = self.model(email=email, **extra_fields)
-        if password:
-            user.set_password(password)
-        user.save(using=self._db)
-        return user
-
-    def create_superuser(self, email, password=None, **extra_fields):
-        user = self.create_user(email, password, **extra_fields)
-        try:
-            admin_role = Role.objects.get(id=Role.ROLE_TYPE_AU)
-            user.roles.add(admin_role)
-        except Role.DoesNotExist:
-            raise Exception(
-                "The 'System Super Admin' role (ID 1) must exist in the 'roles' table."
-            )
-
-        user.save(using=self._db)
-        return user
-
-
-class UserData(AbstractBaseUser):
-    id = models.CharField(
-        primary_key=True,
-        default=generate_id,
-        max_length=32,
-        editable=False,
-        unique=True,
-    )
-    _email = models.CharField(max_length=255, unique=True, db_column="email")
-    email_hash = models.CharField(max_length=64, unique=True)
-    password = models.CharField(max_length=128)
-    first_name = models.CharField(max_length=255)
-    last_name = models.CharField(max_length=255)
-    roles = models.ManyToManyField("Role", blank=True)
-    permissions = models.ManyToManyField("Permission", blank=True)
-    workload = models.IntegerField(default=0)
-    first_login = models.BooleanField(default=True)
-    last_login = models.DateTimeField(null=True, blank=True)
-    is_active = models.BooleanField(default=True)
-    is_deleted = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    permissions_updated_at = models.DateTimeField(null=True, blank=True)
-    designation = models.CharField(max_length=255, null=True, blank=True)
-    department = models.CharField(max_length=255, null=True, blank=True)
-    failed_attempts = models.IntegerField(default=0)
-    last_failed_attempt = models.DateTimeField(null=True, blank=True)
-    captcha = models.CharField(max_length=6, null=True, blank=True)
-    otp_code = models.CharField(max_length=4, blank=True, null=True)
-    otp_expiry = models.FloatField(blank=True, null=True)
-    otp_attempts = models.IntegerField(default=3)
-    previous_passwords = models.JSONField(default=list)
-    password_expiry = models.FloatField(blank=True, null=True)
-    request_type = models.CharField(max_length=35, blank=True, null=True)
-    user_type: int | None = models.PositiveSmallIntegerField(blank=True, null=True)  # type: ignore
-    token_version = models.IntegerField(default=0)
-    source = models.PositiveSmallIntegerField(
-        choices=[(1, "1"), (2, "2"), (3, "3")],
-        default=1,
-    )
-
-    objects = UserDataManager()
-    USERNAME_FIELD = "_email"
-
-    def get_full_name(self):
-        return f"{self.first_name} {self.last_name}".strip()
-
-    @property
-    def is_staff(self):
-        return self.roles.filter(id=Role.ROLE_TYPE_AU).exists()
-
-    @property
-    def is_superuser(self):
-        return self.roles.filter(id=Role.ROLE_TYPE_AU).exists()
-
-    @property
-    def email(self):
-        try:
-            return decrypt_field(self._email)
-        except:
-            return ""
-
-    @property
-    def current_role(self):
-        return Role.ROLE_TYPE_LIST.get(self.user_type, "Unknown")  # type: ignore
-
-    @email.setter
-    def email(self, value):
-        self._email = encrypt_field(value)
-        self.email_hash = hash_field(value)
-
-    def set_password(self, raw_password):
-        if self.password:
-            prev_passwords = (
-                self.previous_passwords[-4:] if self.previous_passwords else []
-            )
-            prev_passwords.append(self.password)
-            self.previous_passwords = prev_passwords
-
-        self.password = make_password(raw_password)
-        self.password_expiry = time.time() + int(
-            os.environ.get("PASSWORD_EXPIRY", 31536000)
-        )
-
-    def is_password_expired(self):
-        if not self.password_expiry:
-            return False
-        return time.time() > self.password_expiry
-
-    def generate_otp(self):
-        self.otp_code = str(randint(1000, 9999))
-        self.otp_expiry = time.time() + 300
-        self.otp_attempts = 3
-        self.save(update_fields=["otp_code", "otp_expiry", "otp_attempts"])
-
-    def __str__(self):
-        try:
-            return self.email
-        except:
-            return self.id
-
-    class Meta:  # type: ignore
-        db_table = "app_userdata"
-        verbose_name = "User"
-        verbose_name_plural = "Users"
-
-
-
-from django.db import models
-from django.conf import settings
-
-
-class SarTemplateData(models.Model):
-    id = models.AutoField(primary_key=True)
-    header_name = models.CharField(max_length=50, db_index=True, null=True, blank=True)
-    header_data = models.TextField(null=True, blank=True)
-    request = models.ForeignKey(
-        "RequestorTeam",
-        on_delete=models.CASCADE,
-        db_column="sgp_id",
-        to_field="sgp_id",
-        related_name="sar_template_data",
-        null=True,
-        blank=True,
-    )
-    comment = models.TextField(null=True, blank=True)
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        db_column="created_by",
-        related_name="sar_template_data_created",
-    )
-    created_date = models.DateTimeField(auto_now_add=True)
-    is_active = models.IntegerField(default=1, db_index=True)
-
-    class Meta:
-        db_table = "sar_template_data"
-        indexes = [
-            models.Index(fields=["request", "is_active"]),
-            models.Index(
-                fields=["request", "is_active", "header_name", "-created_date"],
-                name="sar_lookup_idx",
-            ),
-        ]
-        ordering = ["header_name"]
-
-    def __str__(self):
-        return f"{self.request} - {self.header_name}"
-
-    def get_processed_header_data(self):
-        if not self.header_data:
-            return self.header_data
-        app_url = settings.DOMAIN_URL
-        value = self.header_data
-        replacements = {
-            "/kpmgivtm/public/img/first_page_side.png": f"{app_url}/backend/img/first_page_side.png",
-            "/kpmgivtm/public/img/first_page_sar.png": f"{app_url}/backend/img/first_page_sar.jpg",
-            "/kpmgivtm/public/img/first_page_sar.jpg": f"{app_url}/backend/img/first_page_sar.jpg",
-            "https://abc.kworld.abc.com/abcivtm/public/storage/result_storage/architecture_img": f"{app_url}/backend/result_storage/architecture_img",
-            "/kpmgivtm/public/storage/result_storage/architecture_img": f"{app_url}/backend/result_storage/architecture_img",
-            "/kpmgivtm/public/img/logo_new.png": f"{app_url}/backend/img/logo_new.png",
-        }
-        for old_path, new_path in replacements.items():
-            value = value.replace(old_path, new_path)
-        return value
-
+}

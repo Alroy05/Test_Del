@@ -1,125 +1,158 @@
 "use client";
 
 import { useState, type CSSProperties } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import AppShell, { useToast } from "@/components/AppShell";
 import Breadcrumbs, { HOME_CRUMB, REQUESTS_CRUMB } from "@/components/Breadcrumbs";
-import Select from "@/components/Select";
-import TitleBar from "@/components/TitleBar";
-import { HOSTING, findRequest } from "@/lib/data/requests";
+import IntakeForm from "@/components/intake/IntakeForm";
+import { PORTFOLIO, TYPE_COLOR, TYPE_LABEL, emptyForm, type FormData } from "@/components/intake/model";
 import { cx } from "@/lib/helpers";
-import "@/styles/pages/logs.css";
+import type { HostKey } from "@/lib/data/requests";
+import "@/styles/pages/request-add.css";
 
-/* Activity logs for a request: search, filter by type, sort by date, download emails */
-export default function LogsPage({ params }: { params: { id: string } }) {
+/* Add New Request: find the application in KIEPs (or go manual), choose the solution type, then fill in the intake */
+export default function RequestAddPage() {
   return (
-    <AppShell page="pg-logs">
-      <Logs id={params.id} />
+    <AppShell page="pg-request-add">
+      <AddRequest />
     </AppShell>
   );
 }
 
-/* log types: [icon, colour] */
-const TYPES: Record<string, [string, string]> = {
-  Status: ["fa-solid fa-signal", "#2563EB"],
-  AI: ["fa-solid fa-wand-magic-sparkles", "#7C3AED"],
-  Comments: ["fa-regular fa-comment", "#0E7490"],
-  Email: ["fa-regular fa-envelope", "#B45309"],
-  Identifiers: ["fa-solid fa-fingerprint", "#059669"],
-  Delegate: ["fa-solid fa-user-plus", "#BE185D"],
-  Documents: ["fa-regular fa-file-lines", "#475569"],
-};
-const MAIL = "To: go-fmipgsolutionrevi@kpmg.com, go-fmredteamser@kpmg.com, go-dlsecurecodeanaly@kpmg.com";
-interface Log { date: string; name: string; role: string; resp: string; update: string; old: string; type: string; mail?: boolean }
-const logsFor = (id: string): Log[] => [
-  { date: "2026-10-16T12:30:23", name: "GSSR System", role: "GSSR System", resp: "Request sub status", update: "Security findings validation", old: "Business context generation", type: "Status" },
-  { date: "2026-10-16T12:30:10", name: "Sec Team", role: "GSSR System", resp: "Skip AI evaluation", update: "No", old: "", type: "AI" },
-  { date: "2026-10-16T12:30:10", name: "Sec Team", role: "Security Resource", resp: "Approved", update: "Intake reviewed; all certifications present and identifiers verified.", old: "", type: "Comments" },
-  { date: "2026-10-16T12:30:10", name: "GSSR System", role: "GSSR System", resp: `Global Security Solution Review: Additional Security Assessment Activities Identified | ABC | SR ${id}`, update: `${MAIL}\n\nHello team, additional security assessment activities have been identified for this solution. Please review the attached summary of findings and complete the outstanding activities in GSSR by the due date. Reach out to the Security Resource assigned to this request with any questions.`, old: "", type: "Email", mail: true },
-  { date: "2026-10-15T17:42:05", name: "GSSR System", role: "GSSR System", resp: "Request status", update: "Assessment in progress", old: "Intake verification", type: "Status" },
-  { date: "2026-10-15T17:40:51", name: "Coord Team", role: "Coordinator", resp: "Delegate added", update: "priya.nair@kpmg.com, daniel.ross@kpmg.com", old: "", type: "Delegate" },
-  { date: "2026-10-15T16:12:37", name: "Sec Team", role: "Security Resource", resp: "FoD Release ID (QA)", update: "1184529, 1184530", old: "1184529", type: "Identifiers" },
-  { date: "2026-10-15T16:10:02", name: "Sec Team", role: "Security Resource", resp: "Mend product", update: "ABC-Platform", old: "N/A", type: "Identifiers" },
-  { date: "2026-10-15T11:05:44", name: "GSSR System", role: "GSSR System", resp: "AI risk context", update: "Generated · KPMG Public / BC0 / Low", old: "", type: "AI" },
-  { date: "2026-10-14T18:22:19", name: "Sol Team", role: "Solution Team", resp: "SOC 2 Type II report", update: "SOC2_TypeII_2026.pdf, Bridge_Letter_Q3.pdf", old: "SOC2_TypeII_2025.pdf", type: "Documents" },
-  { date: "2026-10-14T18:20:03", name: "Sol Team", role: "Solution Team", resp: "Intake response", update: "Please find the updated architecture diagram attached.", old: "", type: "Comments" },
-  { date: "2026-10-14T09:31:58", name: "GSSR System", role: "GSSR System", resp: "Intake submitted", update: `${MAIL}\n\nA new intake has been submitted for review. The Coordinator will assign a Security Resource within two business days.`, old: "", type: "Email", mail: true },
-  { date: "2026-10-13T15:47:26", name: "Coord Team", role: "Coordinator", resp: "Request status", update: "Intake verification", old: "Draft", type: "Status" },
-  { date: "2026-10-13T15:45:10", name: "Coord Team", role: "Coordinator", resp: "Assigned to", update: "Sec Team (Security Resource)", old: "Unassigned", type: "Status" },
-  { date: "2026-10-12T10:02:41", name: "Sol Team", role: "Solution Team", resp: "Request created", update: `SAR ${id} created from KIEP`, old: "", type: "Status" },
-];
-
-function Logs({ id }: { id: string }) {
+function AddRequest() {
   const toast = useToast();
-  const r = findRequest(id);
-  const logs = logsFor(id);
-  const [q, setQ] = useState("");
-  const [type, setType] = useState("");
-  const [desc, setDesc] = useState(true);
+  const router = useRouter();
+  const [step, setStep] = useState<"start" | "form">("start");
+  const [hasApm, setHasApm] = useState<"yes" | "no" | null>(null);
+  const [query, setQuery] = useState("");
+  const [searched, setSearched] = useState("");
+  const [apmPick, setApmPick] = useState<string | null>(null);
+  const [type, setType] = useState<HostKey | null>(null);
+  const [form, setForm] = useState<FormData>(emptyForm());
 
-  const query = q.trim().toLowerCase();
-  const rows = logs
-    .filter((l) => (!type || l.type === type) && (!query || [l.name, l.role, l.resp, l.update, l.old].join(" ").toLowerCase().includes(query)))
-    .sort((a, b) => (desc ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date)));
+  const picked = PORTFOLIO.find((r) => r[0] === apmPick);
+  const ready = hasApm === "no" || (hasApm === "yes" && !!picked); // solution type opens once this is settled
+  const q = searched.toLowerCase();
+  // nothing is listed until you search; with an empty search only the chosen application stays visible
+  const rows = q ? PORTFOLIO.filter((r) => r.slice(0, 3).join(" ").toLowerCase().includes(q)) : PORTFOLIO.filter((r) => r[0] === apmPick);
+  const mark = (t: string) => {
+    const i = q ? t.toLowerCase().indexOf(q) : -1;
+    return i < 0 ? t : <>{t.slice(0, i)}<mark>{t.slice(i, i + q.length)}</mark>{t.slice(i + q.length)}</>;
+  };
+  const runSearch = () => {
+    if (!hasApm) setHasApm("yes");
+    setSearched(query.trim());
+    if (!query.trim()) toast("Enter an APM / TPM ID, project name or solution name");
+  };
 
-  const updateCell = (l: Log) => {
-    if (!l.mail) return l.update;
-    const [to, ...rest] = l.update.split("\n\n");
-    const addrs = to.replace(/^To:\s*/, "").split(/,\s*/);
-    return (
-      <>
-        <div className="lg-more lg-mail"><b>To:</b> {addrs.map((a, i) => <span key={a}>{i > 0 && ", "}<span className="addr">{a}</span></span>)}<br /><br />{rest.join(" ")}</div>
-        <div className="lg-links"><button type="button" onClick={() => toast(`Downloading email · ${l.resp.slice(0, 40)}…`)}><i className="fa-solid fa-download" />Download</button></div>
-      </>
-    );
+  const create = () => {
+    const [apm, proj, sol, fam] = hasApm === "yes" && picked ? picked : ["", "", "", ""];
+    // carry the chosen application into the form (a manual intake starts with the names empty)
+    setForm((f) => ({ ...f, v: { ...f.v, apm, project: proj, name: sol, family: fam } }));
+    setStep("form");
+    window.scrollTo({ top: 0 });
+    toast(picked && hasApm === "yes" ? `New request started for ${sol}` : "Manual intake started");
   };
 
   return (
     <main className="shell">
-      <Breadcrumbs items={[HOME_CRUMB, REQUESTS_CRUMB, { label: `View Logs - ${id}`, icon: "fa-solid fa-clock-rotate-left" }]} />
-      <TitleBar projectName={r?.project ?? "ABC"} solutionName={r?.solution ?? "ABC"}
-        meta={[{ label: "Solution type", value: <span className={cx("pill", r ? { kpmg: "pill-host", saas: "pill-saas", saasplus: "pill-saasplus" }[r.host] : "pill-host")}>{r ? HOSTING[r.host].label : "KPMG Hosted"}</span> }]} />
+      <Breadcrumbs items={[HOME_CRUMB, REQUESTS_CRUMB, { label: "Add New Request", icon: "fa-solid fa-plus" }]} />
 
-      <section className="nt-card">
-        <div className="nl-head">
-          <span className="sec-icon"><i className="fa-solid fa-clock-rotate-left" /></span>
-          <h2 className="nl-title">Activity Logs</h2>
-          <span className="nl-count">{rows.length}</span>
-          <div className="lg-tools">
-            <div className="lg-bar">
-              <label className="lg-search"><i className="fa-solid fa-magnifying-glass" /><input type="search" placeholder="Search by name, update or data" aria-label="Search logs" value={q} onChange={(e) => setQ(e.target.value)} /></label>
-              <span className="lg-div" aria-hidden="true" />
-              <Select className="inp lg-type" value={type} placeholder="All log types" options={Object.keys(TYPES)} aria-label="Log type" onChange={setType} />
+      {step === "start" ? (
+        <div className="st-wrap" id="startView">
+          <div className="vi-head">
+            <div className="vi-steps" aria-label="Steps">
+              <span className="on"><b>1</b>APM / TPM ID</span><i className="fa-solid fa-chevron-right" />
+              <span className={cx(ready && "on")}><b>2</b>Solution type</span><i className="fa-solid fa-chevron-right" />
+              <span className={cx(ready && type && "on")}><b>3</b>Intake</span>
             </div>
-            <button type="button" className="vbtn primary" onClick={() => toast(`Exporting artifacts for SAR ${id}`)}><i className="fa-solid fa-download" />Export Artifacts</button>
+          </div>
+          <div className="st-card">
+            <div className="st-sec">
+              <div className="st-label"><span className="n">1</span>Do you have an APM / TPM ID for this solution?</div>
+              <div className="st-ask" role="radiogroup" aria-label="Has an APM / TPM ID">
+                <button type="button" className="st-ans" role="radio" aria-checked={hasApm === "yes"} onClick={() => setHasApm("yes")}>
+                  <span className="ti"><i className="fa-solid fa-magnifying-glass" /></span><span><b>Yes, I have one</b><small>Find the application in KIEPs</small></span><i className="fa-solid fa-circle-check ck" />
+                </button>
+                <button type="button" className="st-ans" role="radio" aria-checked={hasApm === "no"} onClick={() => { setHasApm("no"); setApmPick(null); setQuery(""); setSearched(""); }}>
+                  <span className="ti"><i className="fa-regular fa-keyboard" /></span><span><b>No, not yet</b><small>Continue with a manual intake; the ID can be added later</small></span><i className="fa-solid fa-circle-check ck" />
+                </button>
+              </div>
+              {/* search is always shown; it's disabled when there's no APM / TPM ID */}
+              <div className={cx("st-find", hasApm === "no" && "off")}>
+                <div className="st-sub-l">Search by APM / TPM ID, project name or solution name</div>
+                <label className="st-search">
+                  <i className="fa-solid fa-magnifying-glass" />
+                  <input type="search" placeholder="e.g. GO-AV-00000117 or Transaction Services" aria-label="Search applications" autoComplete="off" disabled={hasApm === "no"}
+                    value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); runSearch(); } }} />
+                  {query && <button type="button" aria-label="Clear search" disabled={hasApm === "no"} onClick={() => { setQuery(""); setSearched(""); }}><i className="fa-solid fa-xmark" /></button>}
+                  <button type="button" className="st-go" disabled={hasApm === "no"} onClick={runSearch}><i className="fa-solid fa-magnifying-glass" />Search</button>
+                </label>
+                <div className="st-meta">
+                  <span>{q ? `${rows.length} match${rows.length === 1 ? "" : "es"} for “${searched}”` : apmPick ? "Selected application" : ""}</span>
+                  <span>Source: KIEPs</span>
+                </div>
+                {hasApm !== "no" && (q || apmPick) && (
+                  <div className="st-list" role="radiogroup" aria-label="Applications">
+                    {rows.length ? (
+                      <>
+                        <div className="st-row head"><span /><span>APM / TPM ID</span><span>Project name</span><span>Solution name</span></div>
+                        {rows.map((r) => (
+                          <button key={r[0]} type="button" className="st-row" role="radio" aria-checked={apmPick === r[0]} onClick={() => { setApmPick(r[0]); setHasApm("yes"); }}>
+                            <span className="st-radio" /><span className="st-apm">{mark(r[0])}</span>
+                            <span><b>{mark(r[1])}</b><small>Family ID {r[3]}</small></span><span><b>{mark(r[2])}</b></span>
+                          </button>
+                        ))}
+                      </>
+                    ) : <div className="st-empty"><i className="fa-solid fa-magnifying-glass" />No applications match. Check the APM / TPM ID in KIEPs.</div>}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="st-sec">
+              <div className="st-label"><span className={cx("n", !ready && "off")}>2</span>Choose the solution type</div>
+              <div className="st-types" role="radiogroup" aria-label="Solution type">
+                {([
+                  ["saas", "fa-solid fa-cloud", "SaaS", "Vendor-hosted software used as-is through a subscription."],
+                  ["kpmg", "fa-solid fa-server", "KPMG Hosted", "Built or hosted by KPMG, e.g. on ONE Platform or a KPMG data centre."],
+                  ["saasplus", "fa-solid fa-layer-group", "SaaS Plus", "Vendor SaaS with KPMG customisation, integrations or data flows."],
+                ] as [HostKey, string, string, string][]).map(([k, ico, title, desc]) => (
+                  <button key={k} type="button" className={`st-type ${k}`} role="radio" aria-checked={type === k} disabled={!ready} onClick={() => setType(k)}>
+                    <span className="ti"><i className={ico} /></span><b>{title}</b><small>{desc}</small><i className="fa-solid fa-circle-check ck" />
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="st-foot">
+              <Link href="/requests" className="st-btn">Cancel</Link>
+              <button type="button" className="st-btn primary" disabled={!(ready && type)} onClick={create}><i className="fa-solid fa-plus" />Create new request</button>
+            </div>
           </div>
         </div>
-        <div className="lg-wrap">
-          <table className="ltable">
-            <colgroup><col style={{ width: "13%" }} /><col style={{ width: "13%" }} /><col style={{ width: "15%" }} /><col style={{ width: "25%" }} /><col style={{ width: "13%" }} /><col style={{ width: "10%" }} /><col style={{ width: "11%" }} /></colgroup>
-            <thead><tr>
-              <th className="sortable" aria-sort={desc ? "descending" : "ascending"} onClick={() => setDesc(!desc)}>Date<i className={`fa-solid ${desc ? "fa-arrow-down" : "fa-arrow-up"}`} /></th>
-              <th>Name</th><th>Response For</th><th>Update</th><th>Old Data</th><th>Type</th><th>User Role</th>
-            </tr></thead>
-            <tbody>
-              {rows.length ? rows.map((l) => {
-                const d = new Date(l.date), [ico, col] = TYPES[l.type];
-                return (
-                  <tr key={l.date + l.resp}>
-                    <td className="lg-date"><b>{d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</b>{d.toLocaleTimeString("en-GB")}</td>
-                    <td className="lg-who">{l.name}</td>
-                    <td>{l.resp}</td>
-                    <td>{updateCell(l)}</td>
-                    <td>{l.old ? <span className="lg-old">{l.old}</span> : <span className="lg-none">—</span>}</td>
-                    <td><span className="lg-type-pill" style={{ "--tc": col } as CSSProperties}><i className={ico} />{l.type}</span></td>
-                    <td className="lg-role">{l.role}</td>
-                  </tr>
-                );
-              }) : <tr><td colSpan={7}><div className="nl-empty"><i className="fa-regular fa-file-lines" />No logs found</div></td></tr>}
-            </tbody>
-          </table>
+      ) : (
+        <div id="add-request-view" className="pt-2 animate-fade-in w-full">
+          <div className="vi-head" id="intakeHead">
+            <div className="vi-names">
+              <div className="vi-name"><span className="vi-name-ico" style={{ "--ic": "#2563EB" } as CSSProperties}><i className="fa-regular fa-folder" /></span><span className="vi-name-txt"><span>Project Name</span><b>{form.v.project || "To be added"}</b></span></div>
+              <div className="vi-name"><span className="vi-name-ico" style={{ "--ic": "#7C3AED" } as CSSProperties}><i className="fa-solid fa-cube" /></span><span className="vi-name-txt"><span>Solution Name</span><b>{form.v.name || "To be added"}</b></span></div>
+            </div>
+            <div className="vi-actions"><button type="button" className="with-label" onClick={() => { setStep("start"); window.scrollTo({ top: 0 }); }}><i className="fa-solid fa-arrow-rotate-left" /><span>Change</span></button></div>
+            <div className="vi-meta">
+              <div className="meta-item"><span>Solution type</span><span className="pill" style={{ "--tc": TYPE_COLOR[type!] } as CSSProperties}>{TYPE_LABEL[type!]}</span></div>
+              <div className="meta-item"><span>Status</span><span className="pill pill-draft">Draft</span></div>
+              <div className="meta-item"><span>APM / TPM ID</span><b>{form.v.apm || "Manual intake"}</b></div>
+              <div className="meta-item"><span>Assessment created by</span><b>Sec Team</b></div>
+            </div>
+          </div>
+          <div className="bg-white dark:bg-slate-850 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden mb-12">
+            <div className="p-6 space-y-6">
+              <IntakeForm mode="add" data={form} onChange={setForm} host={type!}
+                onSubmit={() => { toast("Request submitted · moving to intake verification"); setTimeout(() => router.push("/requests"), 900); }} />
+            </div>
+          </div>
         </div>
-        <div className="lg-foot"><span>Showing {rows.length} of {logs.length} entries</span><span>Times are shown in your local time zone</span></div>
-      </section>
+      )}
       <footer className="vi-foot">© 2026 KPMG | All rights reserved | v3.0.1</footer>
     </main>
   );

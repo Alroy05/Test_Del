@@ -382,6 +382,19 @@ const RequestorArtifactory = () => {
 
   const [logTypeOptions, setLogTypeOptions] = useState<any>();
   const [selectedLogTypes, setSelectedLogTypes] = useState<any[]>([]);
+
+  /* Filter options, with the selected log types listed first */
+  const logTypeSelectOptions = useMemo(() => {
+    const options = (logTypeOptions ?? []).map((option: any) => ({
+      value: option.key,
+      label: option.value,
+    }));
+    const selected = new Set(selectedLogTypes.map((option: any) => String(option.value)));
+    return [
+      ...options.filter((option: any) => selected.has(String(option.value))),
+      ...options.filter((option: any) => !selected.has(String(option.value))),
+    ];
+  }, [logTypeOptions, selectedLogTypes]);
   const [allData, setAllData] = useState<any>();
   const [tableData, setTableData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -605,10 +618,7 @@ const RequestorArtifactory = () => {
                       setSelectedLogTypes(selectedOption ?? []);
                       filter(selectedOption);
                     }}
-                    options={logTypeOptions?.map((option: any) => ({
-                      value: option.key,
-                      label: option.value,
-                    }))}
+                    options={logTypeSelectOptions}
                     controlShouldRenderValue={false}
                     hideSelectedOptions={false}
                     styles={logTypeSelectStyles(isDarkMode)}

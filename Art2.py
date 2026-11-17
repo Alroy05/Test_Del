@@ -24,6 +24,7 @@ import LoadingOverlay from "@/components/LoadingOverlay";
 import Select from "react-select";
 import { customStyles, darkModeStyles } from "@/lib/styles";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import "@/styles/pages/request-add.css";
 
 interface ApmData {
   project_name: string;
@@ -37,12 +38,11 @@ interface ApmData {
   statusString?: string | null;
 }
 
-/* Styles from the request-add design (light / dark tokens):
-   brand #1E3A8A / #7DA2FF, brand-soft #E8EEFF / #1B2547, surface #FFFFFF / #121831,
-   surface-2 #F9FAFD / #0F1529, border #E6E9F2 / #232B45, text #0F1B3D / #E6EAF5,
-   muted #5B6785 / #A3AEC8, faint #8A94AD / #6F7A96, focus #3B6CF6 / #7DA2FF. */
+/* The page itself uses the design stylesheet (request-add.css, scoped to .pg-request-add).
+   These Tailwind classes style the popups, which render outside that wrapper.
+   Light / dark tokens: brand #1E3A8A / #7DA2FF, surface #FFFFFF / #121831,
+   border #E6E9F2 / #232B45, text #0F1B3D / #E6EAF5, muted #5B6785 / #A3AEC8. */
 const mutedCls = "text-[#5B6785] dark:text-[#A3AEC8]";
-const faintCls = "text-[#8A94AD] dark:text-[#6F7A96]";
 const borderCls = "border-[#E6E9F2] dark:border-[#232B45]";
 const focusCls =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3B6CF6] dark:focus-visible:outline-[#7DA2FF]";
@@ -51,24 +51,6 @@ const brandFillCls =
 const btnCls = `inline-flex items-center justify-center gap-2 h-9 px-4 rounded-[10px] text-[13px] font-semibold whitespace-nowrap cursor-pointer transition-all ${focusCls}`;
 const ghostBtnCls = `${btnCls} border ${borderCls} bg-white dark:bg-[#121831] text-[#0F1B3D] dark:text-[#E6EAF5] hover:bg-[#F3F5FB] dark:hover:bg-[#182040]`;
 const primaryBtnCls = `${btnCls} ${brandFillCls} shadow-[0_8px_18px_-10px_rgba(30,58,138,0.7)] hover:brightness-110 disabled:opacity-45 disabled:cursor-not-allowed disabled:shadow-none disabled:hover:brightness-100`;
-const stepNumCls =
-  "grid place-items-center size-[22px] shrink-0 rounded-full text-[11.5px] font-bold transition-colors";
-const stepNumOffCls =
-  "bg-[#E6E9F2] text-[#8A94AD] dark:bg-[#232B45] dark:text-[#6F7A96]";
-const sectionLabelCls =
-  "flex flex-wrap items-center gap-x-2.5 gap-y-1 mb-3 text-[14px] font-semibold text-[#0F1B3D] dark:text-[#E6EAF5]";
-const answerCls = `group flex items-center gap-3 w-full p-3.5 rounded-xl border text-left cursor-pointer transition-all disabled:cursor-not-allowed disabled:opacity-60 ${focusCls}`;
-const answerOffCls = `${borderCls} bg-white dark:bg-[#121831] hover:border-[#D5DAE7] hover:bg-[#F9FAFD] dark:hover:border-[#2F3958] dark:hover:bg-[#182040]`;
-const answerOnCls =
-  "border-[#1E3A8A] bg-[#E8EEFF]/55 shadow-[0_0_0_3px_rgba(59,108,246,0.12)] dark:border-[#7DA2FF] dark:bg-[#1B2547]/70 dark:shadow-[0_0_0_3px_rgba(125,162,255,0.14)]";
-const tileCls =
-  "grid place-items-center size-9 shrink-0 rounded-[10px] text-[#1E3A8A] bg-[#E8EEFF] dark:text-[#7DA2FF] dark:bg-[#1B2547]";
-const pillCls =
-  "inline-flex items-center px-[10px] py-[3px] rounded-full text-[12px] font-semibold whitespace-nowrap";
-const neutralPillCls =
-  "text-[#475569] bg-[#475569]/11 dark:text-[#A3AEC8] dark:bg-[#A3AEC8]/14";
-const colHeadCls =
-  "text-[11px] font-semibold uppercase tracking-wider text-[#8A94AD] dark:text-[#6F7A96]";
 const modalScrimCls =
   "fixed inset-0 z-50 flex items-center justify-center bg-[#0F1B3D]/35 dark:bg-black/55 backdrop-blur-sm";
 const modalCls = `bg-white dark:bg-[#121831] border ${borderCls} w-full max-w-[480px] mx-4 overflow-hidden flex flex-col rounded-2xl shadow-[0_24px_60px_-20px_rgba(15,27,61,0.45)]`;
@@ -77,59 +59,65 @@ const modalTitleCls =
   "text-[14px] font-bold text-[#1E3A8A] dark:text-[#7DA2FF]";
 const modalCloseCls = `grid place-items-center size-7 rounded-lg cursor-pointer text-[#8A94AD] dark:text-[#6F7A96] hover:text-rose-500 hover:bg-white/70 dark:hover:bg-white/5 transition-colors ${focusCls}`;
 
-/* Solution type cards, in the order of the design. Keys are the solution type values. */
-const TYPE_CARDS: {
-  value: number;
-  Icon: React.ElementType;
-  desc: string;
-  tile: string;
-  on: string;
-  check: string;
-  pill: string;
-}[] = [
-  {
-    value: 2,
-    Icon: Cloud,
-    desc: "Vendor-hosted software used as-is through a subscription.",
-    tile: "text-[#0E7490] bg-[#0E7490]/11 dark:text-[#22D3EE] dark:bg-[#22D3EE]/14",
-    on: "border-[#0E7490] bg-[#0E7490]/[0.05] shadow-[0_0_0_3px_rgba(14,116,144,0.12)] dark:border-[#22D3EE] dark:bg-[#22D3EE]/[0.07] dark:shadow-[0_0_0_3px_rgba(34,211,238,0.12)]",
-    check: "bg-[#0E7490] dark:bg-[#22D3EE]",
-    pill: "text-[#0E7490] bg-[#0E7490]/11 dark:text-[#22D3EE] dark:bg-[#22D3EE]/14",
-  },
-  {
-    value: 1,
-    Icon: Server,
-    desc: "Built or hosted by KPMG, e.g. on ONE Platform or a KPMG data centre.",
-    tile: "text-[#047857] bg-[#047857]/11 dark:text-[#4ADE9F] dark:bg-[#4ADE9F]/14",
-    on: "border-[#047857] bg-[#047857]/[0.05] shadow-[0_0_0_3px_rgba(4,120,87,0.12)] dark:border-[#4ADE9F] dark:bg-[#4ADE9F]/[0.07] dark:shadow-[0_0_0_3px_rgba(74,222,159,0.12)]",
-    check: "bg-[#047857] dark:bg-[#4ADE9F]",
-    pill: "text-[#047857] bg-[#047857]/11 dark:text-[#4ADE9F] dark:bg-[#4ADE9F]/14",
-  },
-  {
-    value: 3,
-    Icon: Layers,
-    desc: "Vendor SaaS with KPMG customisation, integrations or data flows.",
-    tile: "text-[#7C3AED] bg-[#7C3AED]/11 dark:text-[#A78BFA] dark:bg-[#A78BFA]/14",
-    on: "border-[#7C3AED] bg-[#7C3AED]/[0.05] shadow-[0_0_0_3px_rgba(124,58,237,0.12)] dark:border-[#A78BFA] dark:bg-[#A78BFA]/[0.07] dark:shadow-[0_0_0_3px_rgba(167,139,250,0.12)]",
-    check: "bg-[#7C3AED] dark:bg-[#A78BFA]",
-    pill: "text-[#7C3AED] bg-[#7C3AED]/11 dark:text-[#A78BFA] dark:bg-[#A78BFA]/14",
-  },
-];
+/* Grey pill for a status, or a solution type the page doesn't know */
+const neutralPillStyle: React.CSSProperties = {
+  color: "var(--text-muted)",
+  background: "var(--surface-2)",
+  border: "1px solid var(--border)",
+};
 
-/* Tick that fades in on the selected answer / solution type card */
-const CheckMark = ({ on, className }: { on: boolean; className?: string }) => (
-  <span
-    aria-hidden="true"
-    className={clsx(
-      "grid place-items-center size-[18px] shrink-0 rounded-full text-white dark:text-[#0F172B] transition-all duration-150",
-      on ? "opacity-100 scale-100" : "opacity-0 scale-75",
-      className,
-    )}
-  >
-    <Check className="size-3" strokeWidth={3} />
+/* Filled tick for the selected answer / solution type card; .ck in the stylesheet
+   positions it and sets its colour, the tick is cut out in the card colour */
+const CheckMark = ({ size }: { size: number }) => (
+  <span className="ck" aria-hidden="true">
+    <span
+      className="grid place-items-center rounded-full bg-current"
+      style={{ width: size, height: size }}
+    >
+      <Check
+        size={size - 6}
+        strokeWidth={3.2}
+        style={{ color: "var(--surface)" }}
+      />
+    </span>
   </span>
 );
 
+/* Solution type cards, in the order of the design. `value` is the solution type sent to the API,
+   `key` the design's card class, light / dark the type colour (same as the stylesheet's --tc). */
+const TYPE_CARDS: {
+  value: number;
+  key: "saas" | "kpmg" | "saasplus";
+  Icon: React.ElementType;
+  desc: string;
+  light: string;
+  dark: string;
+}[] = [
+  {
+    value: 2,
+    key: "saas",
+    Icon: Cloud,
+    desc: "Vendor-hosted software used as-is through a subscription.",
+    light: "#0E7490",
+    dark: "#22D3EE",
+  },
+  {
+    value: 1,
+    key: "kpmg",
+    Icon: Server,
+    desc: "Built or hosted by KPMG, e.g. on ONE Platform or a KPMG data centre.",
+    light: "#047857",
+    dark: "#34D399",
+  },
+  {
+    value: 3,
+    key: "saasplus",
+    Icon: Layers,
+    desc: "Vendor SaaS with KPMG customisation, integrations or data flows.",
+    light: "#7C3AED",
+    dark: "#A78BFA",
+  },
+];
 
 export default function AddRequest() {
   const [isClosingModal, setIsClosingModal] = useState(false);
@@ -380,9 +368,6 @@ export default function AddRequest() {
     isExisting &&
     apmData.actionType !== "edit_intake" &&
     apmData.actionType !== "restart_assessment";
-  const rowGridCls = isExisting
-    ? "sm:grid-cols-[18px_minmax(0,0.9fr)_minmax(0,1.2fr)_minmax(0,1.2fr)_minmax(0,1fr)]"
-    : "sm:grid-cols-[18px_minmax(0,0.9fr)_minmax(0,1.3fr)_minmax(0,1.3fr)]";
 
   const chooseHasApm = () => {
     if (isManual) {
@@ -414,240 +399,183 @@ export default function AddRequest() {
       <Breadcrumbs items={breadcrumbs} />
 
       {isFullLoading && <LoadingOverlay />}
-      <div
-        className={clsx(
-          "bg-white dark:bg-slate-900 text-[#0F1B3D] dark:text-[#E6EAF5] w-full min-h-[90vh] transform transition-all duration-300",
-          isClosingModal ? "scale-95 opacity-0" : "scale-100 opacity-100",
-        )}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mx-auto w-full max-w-[980px] px-3 sm:px-4 pt-3 pb-10">
-          <div
-            className={`rounded-2xl border ${borderCls} bg-white dark:bg-[#121831] shadow-[0_1px_2px_rgba(15,27,61,0.04),0_8px_24px_-16px_rgba(15,27,61,0.18)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_8px_24px_-16px_rgba(0,0,0,0.7)] overflow-hidden`}
-          >
-            {/* 1. APM / TPM ID */}
-            <div className="p-4 sm:p-5">
-              <div className={sectionLabelCls}>
-                <span className={clsx(stepNumCls, brandFillCls)}>1</span>
-                Do you have an APM / TPM ID for this solution?
-              </div>
-
-              <div
-                className="grid grid-cols-1 sm:grid-cols-2 gap-3"
-                role="radiogroup"
-                aria-label="Has an APM / TPM ID"
-              >
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={isApmSearch}
-                  onClick={chooseHasApm}
-                  className={clsx(
-                    answerCls,
-                    isApmSearch ? answerOnCls : answerOffCls,
-                  )}
-                >
-                  <span className={tileCls}>
-                    <Search className="size-4" />
-                  </span>
-                  <span className="flex-1 min-w-0 leading-snug">
-                    <b className="block text-[13.5px] font-semibold">
-                      Yes, I have one
-                    </b>
-                    <small className={`block text-[12px] ${mutedCls}`}>
-                      Find the application in KIEPs
-                    </small>
-                  </span>
-                  <CheckMark
-                    on={isApmSearch}
-                    className="bg-[#1E3A8A] dark:bg-[#7DA2FF]"
-                  />
-                </button>
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={isManual}
-                  disabled={loading}
-                  onClick={chooseNoApm}
-                  className={clsx(
-                    answerCls,
-                    isManual ? answerOnCls : answerOffCls,
-                  )}
-                >
-                  <span className={tileCls}>
-                    <Keyboard className="size-4" />
-                  </span>
-                  <span className="flex-1 min-w-0 leading-snug">
-                    <b className="block text-[13.5px] font-semibold">
-                      No, not yet
-                    </b>
-                    <small className={`block text-[12px] ${mutedCls}`}>
-                      Continue with a manual intake; the ID can be added later
-                    </small>
-                  </span>
-                  <CheckMark
-                    on={isManual}
-                    className="bg-[#1E3A8A] dark:bg-[#7DA2FF]"
-                  />
-                </button>
-              </div>
-
-              {/* search is always shown; it's disabled when there's no APM / TPM ID */}
-              <div
-                className={clsx(
-                  "mt-4 transition-opacity",
-                  isManual && "opacity-50",
-                )}
-              >
-                <div className={`mb-1.5 text-[12px] font-medium ${mutedCls}`}>
-                  Search from KIEPs by APM / TPM ID
+      {/* the design stylesheet switches theme on [data-theme="dark"]; the app uses the .dark class */}
+      <div data-theme={isDarkMode ? "dark" : "light"}>
+        <div
+          className={clsx(
+            "pg-request-add w-full min-h-[90vh] px-3 transform transition-all duration-300",
+            isClosingModal ? "scale-95 opacity-0" : "scale-100 opacity-100",
+          )}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="st-wrap">
+            <div className="st-card">
+              {/* 1. APM / TPM ID */}
+              <div className="st-sec">
+                <div className="st-label">
+                  <span className="n">1</span>
+                  Do you have an APM / TPM ID for this solution?
                 </div>
-                {/* a div, not a label: globals.css makes every label inline-block, which breaks the row */}
                 <div
-                  className={clsx(
-                    `flex items-center gap-2 w-full h-11 pl-3.5 pr-1.5 rounded-xl border ${borderCls} transition-all`,
-                    isManual
-                      ? "bg-[#F9FAFD] dark:bg-[#0F1529] cursor-not-allowed"
-                      : "bg-white dark:bg-[#0F1529] focus-within:border-[#3B6CF6] focus-within:shadow-[0_0_0_3px_rgba(59,108,246,0.14)] dark:focus-within:border-[#7DA2FF] dark:focus-within:shadow-[0_0_0_3px_rgba(125,162,255,0.16)]",
-                  )}
+                  className="st-ask"
+                  role="radiogroup"
+                  aria-label="Has an APM / TPM ID"
                 >
-                  <Search
-                    className={`size-4 shrink-0 ${faintCls}`}
-                    aria-hidden="true"
-                  />
-                  <input
-                    type="text"
-                    value={searchValue}
-                    onChange={handleSearchValueChange}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleSearch();
-                    }}
-                    disabled={isManual}
-                    autoComplete="off"
-                    aria-label="Search APM ID"
-                    className="flex-1 min-w-0 h-full bg-transparent outline-none text-[13.5px] text-[#0F1B3D] dark:text-[#E6EAF5] placeholder:text-[#8A94AD] dark:placeholder:text-[#6F7A96] disabled:cursor-not-allowed"
-                    placeholder="Search APM ID"
-                  />
-                  {searchValue && (
-                    <button
-                      type="button"
-                      aria-label="Clear search"
-                      disabled={isManual}
-                      onClick={() =>
-                        handleSearchValueChange({ target: { value: "" } })
-                      }
-                      className={`grid place-items-center size-7 shrink-0 rounded-lg cursor-pointer ${faintCls} hover:text-[#0F1B3D] hover:bg-[#F3F5FB] dark:hover:text-[#E6EAF5] dark:hover:bg-[#182040] transition-colors ${focusCls}`}
-                    >
-                      <X className="size-3.5" />
-                    </button>
-                  )}
                   <button
                     type="button"
-                    onClick={handleSearch}
-                    disabled={loading || isManual}
-                    className={`inline-flex items-center gap-1.5 h-8 px-3.5 shrink-0 rounded-lg text-[12.5px] font-semibold ${brandFillCls} transition-all hover:brightness-110 disabled:opacity-50 disabled:hover:brightness-100 ${!loading && !isManual ? "cursor-pointer" : "cursor-not-allowed"} ${focusCls}`}
+                    className="st-ans"
+                    role="radio"
+                    aria-checked={isApmSearch}
+                    onClick={chooseHasApm}
                   >
-                    <Search className="size-3.5" />
-                    Search
+                    <span className="ti">
+                      <Search size={16} />
+                    </span>
+                    <span>
+                      <b>Yes, I have one</b>
+                      <small>Find the application in KIEPs</small>
+                    </span>
+                    <CheckMark size={18} />
+                  </button>
+                  <button
+                    type="button"
+                    className="st-ans"
+                    role="radio"
+                    aria-checked={isManual}
+                    disabled={loading}
+                    onClick={chooseNoApm}
+                  >
+                    <span className="ti">
+                      <Keyboard size={16} />
+                    </span>
+                    <span>
+                      <b>No, not yet</b>
+                      <small>
+                        Continue with a manual intake; the ID can be added later
+                      </small>
+                    </span>
+                    <CheckMark size={18} />
                   </button>
                 </div>
 
-                {error && (
-                  <div className="flex items-start gap-2.5 mt-3 px-3.5 py-2.5 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300 text-[13px] font-medium">
-                    <Info
-                      className="size-4 shrink-0 mt-[1px]"
-                      aria-hidden="true"
-                    />
-                    <div
-                      className="min-w-0 [overflow-wrap:anywhere] [&_a]:underline"
-                      dangerouslySetInnerHTML={{
-                        __html: DOMPurify.sanitize(error),
+                {/* search is always shown; it's disabled when there's no APM / TPM ID */}
+                <div className={clsx("st-find", isManual && "off")}>
+                  <div className="st-sub-l">Search by APM / TPM ID</div>
+                  {/* a div, not a label: globals.css gives every label a bottom margin */}
+                  <div className="st-search">
+                    <i aria-hidden="true">
+                      <Search size={16} />
+                    </i>
+                    <input
+                      type="search"
+                      value={searchValue}
+                      onChange={handleSearchValueChange}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSearch();
                       }}
+                      disabled={isManual}
+                      autoComplete="off"
+                      aria-label="Search APM ID"
+                      placeholder="Search APM ID, e.g. GO-AV-00000117"
                     />
+                    {searchValue && (
+                      <button
+                        type="button"
+                        aria-label="Clear search"
+                        disabled={isManual}
+                        onClick={() =>
+                          handleSearchValueChange({ target: { value: "" } })
+                        }
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className={clsx(
+                        "st-go disabled:opacity-60",
+                        !loading && !isManual
+                          ? "cursor-pointer"
+                          : "cursor-not-allowed",
+                      )}
+                      onClick={handleSearch}
+                      disabled={loading || isManual}
+                    >
+                      <Search size={13} />
+                      Search
+                    </button>
                   </div>
-                )}
 
-                <div
-                  className={`flex items-center justify-between gap-3 mt-2.5 text-[12px] ${faintCls}`}
-                >
-                  <span className="min-w-0 truncate">
-                    {!isManual && apmData ? "Selected application" : ""}
-                  </span>
-                  <span className="shrink-0">Source: KIEPs</span>
-                </div>
-
-                {!isManual && (
-                  <div className="mt-2">
-                    {loading && !apmData ? (
+                  {error && (
+                    <div className="flex items-start gap-2.5 mt-3 px-3.5 py-2.5 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300 text-[13px] font-medium">
+                      <Info
+                        className="size-4 shrink-0 mt-[1px]"
+                        aria-hidden="true"
+                      />
                       <div
-                        className={`rounded-xl border ${borderCls} px-4 py-8 text-center animate-pulse text-[11px] font-bold uppercase tracking-widest ${faintCls}`}
+                        className="min-w-0 [overflow-wrap:anywhere] [&_a]:underline"
+                        dangerouslySetInnerHTML={{
+                          __html: DOMPurify.sanitize(error),
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  <div className="st-meta">
+                    <span>
+                      {!isManual && apmData ? "Selected application" : ""}
+                    </span>
+                    <span>Source: KIEPs</span>
+                  </div>
+
+                  {!isManual && loading && !apmData && (
+                    <div className="st-list">
+                      <div className="st-empty animate-pulse">Loading...</div>
+                    </div>
+                  )}
+                  {!isManual && apmData && (
+                    <div
+                      className="st-list"
+                      role="radiogroup"
+                      aria-label="Applications"
+                    >
+                      {/* --th-fg: the stylesheet's dark-blue default is unreadable in dark mode */}
+                      <div
+                        className="st-row head"
+                        style={{ "--th-fg": "var(--brand)" } as React.CSSProperties}
                       >
-                        Loading...
+                        <span />
+                        <span>APM / TPM ID</span>
+                        <span>Project name</span>
+                        <span>Solution name</span>
                       </div>
-                    ) : apmData ? (
-                      <div
-                        className={`rounded-xl border ${borderCls} overflow-hidden`}
-                      >
-                        <div
-                          className={`hidden sm:grid ${rowGridCls} items-center gap-x-4 px-4 py-2.5 border-b ${borderCls} bg-[#F9FAFD] dark:bg-[#0F1529] ${colHeadCls}`}
-                        >
-                          <span />
-                          <span>APM ID</span>
-                          <span>Project Name</span>
-                          <span>Solution Name</span>
+                      <div className="st-row" role="radio" aria-checked="true">
+                        <span className="st-radio" />
+                        <span className="st-apm [overflow-wrap:anywhere]">
+                          {apmData.apm_id}
+                        </span>
+                        <span>
+                          <b>{apmData.project_name}</b>
+                          <small>Family ID {apmData.family_id}</small>
+                        </span>
+                        <span>
+                          <b>{apmData.solution_name}</b>
                           {isExisting && (
-                            <span>
-                              {showStatus
-                                ? "Solution Type / Status"
-                                : "Solution Type"}
-                            </span>
-                          )}
-                        </div>
-                        <div
-                          className={`grid grid-cols-[18px_minmax(0,1fr)] ${rowGridCls} items-center gap-x-4 gap-y-2.5 px-4 py-3.5 bg-[#E8EEFF]/45 dark:bg-[#1B2547]/55`}
-                        >
-                          <span
-                            aria-hidden="true"
-                            className="grid place-items-center size-[18px] rounded-full border-2 border-[#1E3A8A] dark:border-[#7DA2FF] self-start sm:self-center"
-                          >
-                            <span className="size-2 rounded-full bg-[#1E3A8A] dark:bg-[#7DA2FF]" />
-                          </span>
-                          <span className="min-w-0">
-                            <small className={`block sm:hidden ${colHeadCls}`}>
-                              APM ID
-                            </small>
-                            <span className="text-[13px] font-semibold text-[#1E3A8A] dark:text-[#7DA2FF] [overflow-wrap:anywhere]">
-                              {apmData.apm_id}
-                            </span>
-                          </span>
-                          <span className="min-w-0 col-start-2 sm:col-start-auto leading-snug">
-                            <small className={`block sm:hidden ${colHeadCls}`}>
-                              Project Name
-                            </small>
-                            <b className="block text-[13px] font-semibold [overflow-wrap:anywhere]">
-                              {apmData.project_name}
-                            </b>
-                            <small className={`block text-[12px] ${mutedCls}`}>
-                              Family ID {apmData.family_id}
-                            </small>
-                          </span>
-                          <span className="min-w-0 col-start-2 sm:col-start-auto leading-snug">
-                            <small className={`block sm:hidden ${colHeadCls}`}>
-                              Solution Name
-                            </small>
-                            <b className="block text-[13px] font-semibold [overflow-wrap:anywhere]">
-                              {apmData.solution_name}
-                            </b>
-                          </span>
-                          {isExisting && (
-                            <span className="min-w-0 col-start-2 sm:col-start-auto flex flex-wrap items-center gap-1.5">
+                            <span className="flex flex-wrap gap-1.5 mt-1.5">
                               <span
-                                className={clsx(
-                                  pillCls,
+                                className="pill"
+                                style={
                                   existingType
-                                    ? existingType.pill
-                                    : neutralPillCls,
-                                )}
+                                    ? ({
+                                        "--tc": isDarkMode
+                                          ? existingType.dark
+                                          : existingType.light,
+                                        color: "var(--tc)",
+                                        background:
+                                          "color-mix(in srgb, var(--tc) 12%, var(--surface))",
+                                      } as React.CSSProperties)
+                                    : neutralPillStyle
+                                }
                               >
                                 {apmData.solution_type === 1
                                   ? "KPMG Hosted"
@@ -659,160 +587,128 @@ export default function AddRequest() {
                               </span>
                               {showStatus && (
                                 <span
-                                  className={clsx(
-                                    pillCls,
-                                    neutralPillCls,
-                                    "whitespace-normal",
-                                  )}
+                                  className="pill"
+                                  style={{
+                                    ...neutralPillStyle,
+                                    whiteSpace: "normal",
+                                  }}
                                 >
                                   {apmData.statusString || "NA"}
                                 </span>
                               )}
                             </span>
                           )}
-                        </div>
+                        </span>
                       </div>
-                    ) : null}
-                  </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* 2. Solution type */}
+              <div className="st-sec">
+                <div className="st-label">
+                  <span className={clsx("n", !ready && "off")}>2</span>
+                  Choose the solution type
+                </div>
+                <div
+                  className="st-types"
+                  role="radiogroup"
+                  aria-label="Solution type"
+                >
+                  {TYPE_CARDS.map(({ value, key, Icon, desc }) => {
+                    const option = (isManual ? Typeoptions : options).find(
+                      (opt: any) => opt.value === value,
+                    );
+                    const checked = pickedType === value;
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        className={`st-type ${key}`}
+                        role="radio"
+                        aria-checked={checked}
+                        disabled={!canPickType}
+                        // an existing request keeps its type: show it at full strength
+                        style={
+                          checked && !canPickType ? { opacity: 1 } : undefined
+                        }
+                        onClick={() => pickSolutionType(option)}
+                      >
+                        <span className="ti">
+                          <Icon size={16} />
+                        </span>
+                        <b>{option?.label}</b>
+                        <small>{desc}</small>
+                        <CheckMark size={17} />
+                      </button>
+                    );
+                  })}
+                </div>
+                {solutionTypeError && (
+                  <p className="mt-2 text-[12px] font-medium text-red-600 dark:text-red-400">
+                    {solutionTypeError}
+                  </p>
                 )}
               </div>
-            </div>
 
-            {/* 2. Solution type */}
-            <div className={`p-4 sm:p-5 border-t ${borderCls}`}>
-              <div className={sectionLabelCls}>
-                <span
-                  className={clsx(
-                    stepNumCls,
-                    ready ? brandFillCls : stepNumOffCls,
-                  )}
-                >
-                  2
-                </span>
-                Choose the solution type
-                {existingType && (
-                  <span className={`text-[12px] font-medium ${faintCls}`}>
-                    (already set for this request)
-                  </span>
-                )}
+              <div className="st-foot">
+                <Link href="/requests" className="st-btn">
+                  Cancel
+                </Link>
+                {isManual ? (
+                  <button
+                    type="button"
+                    className="st-btn primary"
+                    onClick={handleSolutionTypeSubmit}
+                    disabled={!selectedSolutionType}
+                  >
+                    <Plus size={15} />
+                    Create new request
+                  </button>
+                ) : !apmData?.isExisting ? (
+                  <button
+                    type="button"
+                    className="st-btn primary"
+                    onClick={() => setIsOpen(true)}
+                    disabled={!apmData || loading || isSaas === ""}
+                  >
+                    {loading ? (
+                      "..."
+                    ) : (
+                      <>
+                        <Plus size={15} />
+                        Create intake form
+                      </>
+                    )}
+                  </button>
+                ) : apmData.actionType === "edit_intake" ? (
+                  <button
+                    type="button"
+                    className="st-btn primary"
+                    onClick={() =>
+                      router.push(
+                        `/requests/${apmData.sgp_id}/edit/?activeTab=2`,
+                      )
+                    }
+                  >
+                    <Pencil size={14} />
+                    Edit intake form
+                  </button>
+                ) : apmData.actionType === "restart_assessment" ? (
+                  <button
+                    type="button"
+                    className="st-btn primary"
+                    onClick={() => {
+                      setSelectedSgpId(apmData.sgp_id);
+                      setShowConfirmStartAssessment(true);
+                    }}
+                  >
+                    <RotateCcw size={14} />
+                    Restart assessment
+                  </button>
+                ) : null}
               </div>
-              <div
-                className="grid grid-cols-1 sm:grid-cols-3 gap-3"
-                role="radiogroup"
-                aria-label="Solution type"
-              >
-                {TYPE_CARDS.map(({ value, Icon, desc, tile, on, check }) => {
-                  const option = (isManual ? Typeoptions : options).find(
-                    (opt: any) => opt.value === value,
-                  );
-                  const checked = pickedType === value;
-                  return (
-                    <button
-                      key={value}
-                      type="button"
-                      role="radio"
-                      aria-checked={checked}
-                      disabled={!canPickType}
-                      onClick={() => pickSolutionType(option)}
-                      className={clsx(
-                        `relative flex flex-col items-start gap-1.5 p-4 rounded-xl border text-left transition-all ${focusCls}`,
-                        checked
-                          ? on
-                          : `${borderCls} bg-white dark:bg-[#121831]`,
-                        canPickType
-                          ? "cursor-pointer"
-                          : "cursor-not-allowed",
-                        canPickType &&
-                          !checked &&
-                          "hover:border-[#D5DAE7] hover:bg-[#F9FAFD] dark:hover:border-[#2F3958] dark:hover:bg-[#182040]",
-                        !canPickType && !checked && "opacity-55",
-                      )}
-                    >
-                      <span
-                        className={`grid place-items-center size-9 rounded-[10px] mb-1 ${tile}`}
-                      >
-                        <Icon className="size-[18px]" />
-                      </span>
-                      <b className="text-[13.5px] font-semibold">
-                        {option?.label}
-                      </b>
-                      <small
-                        className={`text-[12px] leading-snug ${mutedCls}`}
-                      >
-                        {desc}
-                      </small>
-                      <CheckMark
-                        on={checked}
-                        className={`absolute top-3.5 right-3.5 ${check}`}
-                      />
-                    </button>
-                  );
-                })}
-              </div>
-              {solutionTypeError && (
-                <p className="mt-2 text-[12px] font-medium text-red-600 dark:text-red-400">
-                  {solutionTypeError}
-                </p>
-              )}
-            </div>
-
-            {/* Actions */}
-            <div
-              className={`flex flex-wrap items-center justify-end gap-2.5 px-4 sm:px-5 py-3.5 border-t ${borderCls} bg-[#F9FAFD] dark:bg-[#0F1529]`}
-            >
-              <Link href="/requests" className={ghostBtnCls}>
-                Cancel
-              </Link>
-              {isManual ? (
-                <button
-                  type="button"
-                  onClick={handleSolutionTypeSubmit}
-                  disabled={!selectedSolutionType}
-                  className={primaryBtnCls}
-                >
-                  <Plus className="size-4" />
-                  Create new request
-                </button>
-              ) : !apmData?.isExisting ? (
-                <button
-                  type="button"
-                  onClick={() => setIsOpen(true)}
-                  disabled={!apmData || loading || isSaas === ""}
-                  className={primaryBtnCls}
-                >
-                  {loading ? (
-                    "..."
-                  ) : (
-                    <>
-                      <Plus className="size-4" />
-                      Create intake form
-                    </>
-                  )}
-                </button>
-              ) : apmData.actionType === "edit_intake" ? (
-                <button
-                  type="button"
-                  onClick={() =>
-                    router.push(`/requests/${apmData.sgp_id}/edit/?activeTab=2`)
-                  }
-                  className={primaryBtnCls}
-                >
-                  <Pencil className="size-3.5" />
-                  Edit intake form
-                </button>
-              ) : apmData.actionType === "restart_assessment" ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedSgpId(apmData.sgp_id);
-                    setShowConfirmStartAssessment(true);
-                  }}
-                  className={primaryBtnCls}
-                >
-                  <RotateCcw className="size-3.5" />
-                  Restart assessment
-                </button>
-              ) : null}
             </div>
           </div>
         </div>

@@ -82,9 +82,18 @@ const searchBarOffCls = "grayscale cursor-not-allowed";
 
 /* Result list */
 const listCls = `max-h-[330px] overflow-y-auto border ${borderCls} rounded-xl`;
-const rowCls =
-  "grid grid-cols-[28px_minmax(0,1fr)] min-[761px]:grid-cols-[28px_170px_minmax(0,1fr)_minmax(0,1fr)] items-center gap-3.5 w-full px-4 py-3 text-left";
-const rowNarrowCellCls = "max-[760px]:col-start-2"; // stacks the name cells under the ID on phones
+const rowBaseCls =
+  "grid grid-cols-[28px_minmax(0,1fr)] items-center gap-3.5 w-full px-4 py-3 text-left";
+/* Columns from 761px up: a request that already exists adds Solution type, and Status
+   when the API sends one instead of an action */
+const ROW_COLS = {
+  new: "min-[761px]:grid-cols-[28px_170px_minmax(0,1fr)_minmax(0,1fr)]",
+  existing:
+    "min-[761px]:grid-cols-[28px_170px_minmax(0,1fr)_minmax(0,1fr)_130px]",
+  existingWithStatus:
+    "min-[761px]:grid-cols-[28px_170px_minmax(0,1fr)_minmax(0,1fr)_130px_minmax(0,0.8fr)]",
+};
+const rowNarrowCellCls = "max-[760px]:col-start-2"; // stacks the cells under the ID on phones
 
 const pillCls =
   "inline-flex items-center px-2.5 py-[3px] rounded-full text-[12px] font-semibold whitespace-nowrap";
@@ -408,6 +417,13 @@ export default function AddRequest() {
     isExisting &&
     apmData.actionType !== "edit_intake" &&
     apmData.actionType !== "restart_assessment";
+  const rowCls = `${rowBaseCls} ${
+    showStatus
+      ? ROW_COLS.existingWithStatus
+      : isExisting
+        ? ROW_COLS.existing
+        : ROW_COLS.new
+  }`;
 
   const chooseHasApm = () => {
     if (isManual) {
@@ -612,6 +628,8 @@ export default function AddRequest() {
                       <span>APM / TPM ID</span>
                       <span>Project name</span>
                       <span>Solution name</span>
+                      {isExisting && <span>Solution type</span>}
+                      {showStatus && <span>Status</span>}
                     </div>
                     <div
                       role="radio"
@@ -638,33 +656,35 @@ export default function AddRequest() {
                         <b className={`text-[13px] font-semibold ${textCls}`}>
                           {apmData.solution_name}
                         </b>
-                        {isExisting && (
-                          <span className="flex flex-wrap gap-1.5 mt-1.5">
-                            <span
-                              className={
-                                existingType
-                                  ? `${typePillCls} ${existingType.tc}`
-                                  : `${pillCls} ${neutralPillCls}`
-                              }
-                            >
-                              {apmData.solution_type === 1
-                                ? "KPMG Hosted"
-                                : apmData.solution_type === 2
-                                  ? "SaaS"
-                                  : apmData.solution_type === 3
-                                    ? "SaaS Plus"
-                                    : "NA"}
-                            </span>
-                            {showStatus && (
-                              <span
-                                className={`${pillCls} ${neutralPillCls} whitespace-normal`}
-                              >
-                                {apmData.statusString || "NA"}
-                              </span>
-                            )}
-                          </span>
-                        )}
                       </span>
+                      {isExisting && (
+                        <span className={rowNarrowCellCls}>
+                          <span
+                            className={
+                              existingType
+                                ? `${typePillCls} ${existingType.tc}`
+                                : `${pillCls} ${neutralPillCls}`
+                            }
+                          >
+                            {apmData.solution_type === 1
+                              ? "KPMG Hosted"
+                              : apmData.solution_type === 2
+                                ? "SaaS"
+                                : apmData.solution_type === 3
+                                  ? "SaaS Plus"
+                                  : "NA"}
+                          </span>
+                        </span>
+                      )}
+                      {showStatus && (
+                        <span className={rowNarrowCellCls}>
+                          <span
+                            className={`${pillCls} ${neutralPillCls} whitespace-normal`}
+                          >
+                            {apmData.statusString || "NA"}
+                          </span>
+                        </span>
+                      )}
                     </div>
                   </div>
                 )}
